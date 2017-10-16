@@ -30,3 +30,9 @@
 
 # Debug files
 *.dSYM/
+
+# IDE
+.idea/
+
+# Build
+cmake-build-debug/
