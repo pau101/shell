@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <wait.h>
 #include "command.h"
 #include "../../util/preconditions.h"
 #include "../../object/type/string.h"
@@ -12,28 +13,57 @@ Command *command_new() {
     return command;
 }
 
+int command_exec_(Object *e) {
+    return command_exec(object_get(e, &TYPE_COMMAND));
+}
+
+Executable *command_executable(Command *command) {
+    requireNonNull(command);
+    return executable_new(object_new(&TYPE_COMMAND, command), command_exec_);
+}
+
 void command_addWord(Command *command, char *word) {
+    requireNonNull(command);
+    requireNonNull(word);
     list_addLast(command->words, object_new(&TYPE_STRING, word));
 }
 
 void command_addRedirect(Command *command, Redirect *redirect) {
+    requireNonNull(command);
+    requireNonNull(redirect);
     list_addLast(command->redirects, object_new(&TYPE_REDIRECT, redirect));
 }
 
-void command_exec(Command *command) {
+int command_exec(Command *command) {
+    requireNonNull(command);
     char **words = calloc((size_t) command->words->size + 1, sizeof(char *));
     Iterator *wIter = list_iterator(command->words);
     for (int i = 0; iterator_hasNext(wIter); i++) {
         words[i] = object_get(iterator_next(wIter), &TYPE_STRING);
     }
     iterator_dispose(wIter);
-    Iterator *rIter = list_iterator(command->redirects);
-    while (iterator_hasNext(rIter)) {
-        redirect_perform(object_get(iterator_next(wIter), &TYPE_REDIRECT));
+    pid_t cpid = fork();
+    if (cpid < 0) {
+        pExit("fork");
     }
-    iterator_dispose(rIter);
-    execvp(words[0], words); // TODO words leak
-    pExit(words[0]);
+    if (cpid == 0) {
+        Iterator *rIter = list_iterator(command->redirects);
+        while (iterator_hasNext(rIter)) {
+            redirect_perform(object_get(iterator_next(wIter), &TYPE_REDIRECT));
+        }
+        iterator_dispose(rIter);
+        printf("exec: %s\n", words[0]);
+        execvp(words[0], words);
+        pExit(words[0]);
+    }
+    int status;
+    pid_t w = waitpid(cpid, &status, 0);
+    if (w == -1) {
+        pExit("waitpid");
+    }
+    printf("command status: %d\n", status);
+    free(words);
+    return status;
 }
 
 char *command_toString(void *o) {

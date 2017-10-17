@@ -21,4 +21,14 @@
         if ((ptr) == NULL) errExit(#ptr " is null"); \
     })
 
+#define \
+    checkElementIndex(index, size) ({ \
+        if ((index) < 0 || (index) >= (size)) errExit(#index " is out of bounds"); \
+    })
+
+#define \
+    checkPositionIndex(index, size) ({ \
+        if ((index) < 0 || (index) > (size)) errExit(#index " is out of bounds"); \
+    })
+
 #endif //SHELL_PRECONDITIONS_H

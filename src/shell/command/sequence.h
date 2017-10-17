@@ -3,14 +3,17 @@
 
 #include "../../collections/linkedlist/linkedlist.h"
 #include "pipeline.h"
+#include "../executable/executable.h"
 
 typedef struct sequence {
-    LinkedList *pipelines;
+    LinkedList *executables;
 } Sequence;
 
 Sequence *sequence_new();
 
-void sequence_add(Sequence *sequence, Pipeline *pipeline);
+Executable *sequence_executable(Sequence *sequence);
+
+void sequence_add(Sequence *sequence, Executable *executable);
 
 int sequence_exec(Sequence *sequence);
 

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <wait.h>
 #include "pipeline.h"
 #include "../../util/preconditions.h"
 #include "../../object/type/reference.h"
@@ -9,51 +10,84 @@
 
 Pipeline *pipeline_new() {
     Pipeline *pipeline = calloc(1, sizeof(Pipeline));
-    pipeline->commands = list_new();
+    pipeline->executables = list_new();
     return pipeline;
 }
 
-void pipeline_add(Pipeline *pipeline, Command *command) {
-    list_addLast(pipeline->commands, object_new(&TYPE_COMMAND, command));
+int pipeline_exec_(Object *e) {
+    return pipeline_exec(object_get(e, &TYPE_PIPELINE));
 }
 
-void pipeline_exec(Pipeline *pipeline) {
-    if (pipeline->commands->size == 1) {
-        command_exec(object_get(list_peekFirst(pipeline->commands), &TYPE_COMMAND));
-    } else {
-        pid_t pid = 0;
-        int fd[2];
-        Iterator *iter = list_descendingIterator(pipeline->commands);
-        while (iterator_hasNext(iter)) {
-            Command *command = object_get(iterator_next(iter), &TYPE_COMMAND);
-            if (pipe(fd) < 0) {
-                pExit("pipe");
+Executable *pipeline_executable(Pipeline *pipeline) {
+    requireNonNull(pipeline);
+    return executable_new(object_new(&TYPE_PIPELINE, pipeline), pipeline_exec_);
+}
+
+void pipeline_add(Pipeline *pipeline, Executable *executable) {
+    requireNonNull(pipeline);
+    requireNonNull(executable);
+    list_addLast(pipeline->executables, object_new(&TYPE_EXECUTABLE, executable));
+}
+
+void pipeline_pipe(int fd[2], Executable *executable, bool doRead, bool doWrite) {
+    if (pipe(fd) < 0) {
+        pExit("pipe");
+    }
+    pid_t cpid = fork();
+    if (cpid < 0) {
+        pExit("fork");
+    }
+    if (cpid == 0) {
+        if (doWrite) {
+            close(fd[READ]);
+            if (dup2(fd[WRITE], STDOUT_FILENO) < 0) {
+                pExit("dup2");
             }
-            pid_t cpid = fork();
-            if (cpid < 0) {
-                pExit("fork");
-            }
-            if (cpid == 0) {
-                close(fd[READ]);
-                if (dup2(fd[WRITE], STDOUT_FILENO) < 0) {
-                    pExit("dup2");
-                }
-                close(fd[WRITE]);
-            } else {
-                close(fd[WRITE]);
-                if (dup2(fd[READ], STDIN_FILENO) < 0) {
-                    pExit("dup2");
-                }
-                close(fd[READ]);
-                if (pid == 0) {
-                    pid = cpid;
-                }
-                command_exec(command);
-            }
+            close(fd[WRITE]);
         }
-        iterator_dispose(iter);
+    } else {
+        if (doRead) {
+            close(fd[WRITE]);
+            if (dup2(fd[READ], STDIN_FILENO) < 0) {
+                pExit("dup2");
+            }
+            close(fd[READ]);
+        }
+        int status = executable_execute(executable);
+        fprintf(stderr, "pid: %d, executable status: %d\n", getpid(), status);
+        exit(status);
+    }
+}
+
+int pipeline_exec(Pipeline *pipeline) {
+    requireNonNull(pipeline);
+    if (pipeline->executables->size == 1) {
+        return executable_execute(object_get(list_peekFirst(pipeline->executables), &TYPE_EXECUTABLE));
+    }
+    pid_t cpid = fork();
+    if (cpid < 0) {
+        pExit("fork");
+    }
+    if (cpid == 0) {
+        int fd[2];
+        ListIterator *itr = list_listIterator(pipeline->executables, pipeline->executables->size);
+        while (listiterator_hasPrevious(itr)) {
+            Executable *executable = object_get(listiterator_previous(itr), &TYPE_EXECUTABLE);
+            fprintf(stderr, "pre pipe\n");
+            pipeline_pipe(fd, executable, listiterator_hasPrevious(itr), listiterator_hasNext(itr));
+            fprintf(stderr, "post pipe\n");
+        }
+        listiterator_dispose(itr);
         exit(EXIT_SUCCESS);
     }
+    int status;
+    pid_t w = waitpid(cpid, &status, 0);
+    if (w == -1) {
+        pExit("waitpid");
+    }
+    fprintf(stderr, "child: %d\n", cpid);
+    fprintf(stderr, "pipe status: %d\n", status);
+    return status;
 }
 
 char *pipeline_toString(void *o) {
@@ -72,6 +106,6 @@ void pipeline_dispose(void *o) {
     if (o == NULL) {
         return;
     }
-    list_dispose(((Pipeline *) o)->commands);
+    list_dispose(((Pipeline *) o)->executables);
     free(o);
 }

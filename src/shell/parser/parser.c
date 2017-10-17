@@ -116,34 +116,35 @@ Pipeline *parser_parsePipeline(Parser *parser, FILE *input, ThrowingBlock *tb) {
     Pipeline *pipeline = pipeline_new();
     int pid = tb_trace(tb, object_new(&TYPE_PIPELINE, pipeline));
     do {
-        pipeline_add(pipeline, parser_parseCommand(parser, input, tb));
+        pipeline_add(pipeline, command_executable(parser_parseCommand(parser, input, tb)));
     } while (parser->token->type == TOK_PIPE);
     tb_untrace(tb, pid);
     return pipeline;
 }
 
-Sequence *parser_parse(Parser *parser, FILE *input, FILE *output) {
+Executable *parser_parse(Parser *parser, FILE *input, FILE *output) {
     ThrowingBlock *tb = tb_new();
-    Sequence *sequence;
+    Executable *executable;
     if (tb_try(tb)) {
-        sequence = sequence_new();
+        Sequence *sequence = sequence_new();
         int sid = tb_trace(tb, object_new(&TYPE_SEQUENCE, sequence));
         do {
-            sequence_add(sequence, parser_parsePipeline(parser, input, tb));
+            sequence_add(sequence, pipeline_executable(parser_parsePipeline(parser, input, tb)));
         } while (parser->token->type == TOK_SEQUENCE);
         if (parser_isInLine(parser)) {
             tb_throw(tb, "syntax error");
         }
         tb_untrace(tb, sid);
+        executable = sequence_executable(sequence);
     } else {
-        sequence = NULL;
+        executable = NULL;
         fprintf(output, "%s\n", tb->errorMessage);
         while (parser_isInLine(parser)) {
             parser_nextToken(parser, input);
         }
     }
     tb_dispose(tb);
-    return sequence;
+    return executable;
 }
 
 void parser_dispose(Parser *parser) {

@@ -9,8 +9,6 @@
 
 typedef struct shell {
     Parser *parser;
-    int historyCount;
-    int historyFileCount;
     Hashtable *aliases;
 } Shell;
 

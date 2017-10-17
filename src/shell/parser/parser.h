@@ -16,7 +16,7 @@ bool parser_isInLine(Parser *parser);
 
 bool parser_isAtLine(Parser *parser);
 
-Sequence *parser_parse(Parser *parser, FILE *input, FILE *output);
+Executable *parser_parse(Parser *parser, FILE *input, FILE *output);
 
 void parser_dispose(Parser *parser);
 

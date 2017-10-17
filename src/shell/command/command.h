@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "redirect/redirect.h"
 #include "../../collections/linkedlist/linkedlist.h"
+#include "../executable/executable.h"
 
 typedef struct command {
     LinkedList *words;
@@ -12,11 +13,13 @@ typedef struct command {
 
 Command *command_new();
 
+Executable *command_executable(Command *command);
+
 void command_addWord(Command *command, char *word);
 
 void command_addRedirect(Command *command, Redirect *redirect);
 
-void command_exec(Command *command);
+int command_exec(Command *command);
 
 char *command_toString(void *o);
 

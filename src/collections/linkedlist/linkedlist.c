@@ -31,19 +31,25 @@ bool list_isEmpty(LinkedList *linkedList) {
     return linkedList->size == 0;
 }
 
-Object *list_get(LinkedList *linkedList, int index) {
-    if (index < 0 || index >= linkedList->size) {
-        errExit("index out of bounds");
-    }
-    Iterator *itr = list_iterator(linkedList);
-    for (int i = 0; iterator_hasNext(itr); i++) {
-        Object *obj = iterator_next(itr);
-        if (i == index) {
-            iterator_dispose(itr);
-            return obj;
+Node *list_node(LinkedList *linkedList, int index) {
+    if (index < linkedList->size / 2) {
+        Node *n = linkedList->head->next;
+        for (int i = 0; i < index; i++) {
+            n = n->next;
         }
+        return n;
+    } else {
+        Node *n = linkedList->tail->prev;
+        for (int i = linkedList->size - 1; i > index; i--) {
+            n = n->prev;
+        }
+        return n;
     }
-    errExit("list overrun");
+}
+
+Object *list_get(LinkedList *linkedList, int index) {
+    checkElementIndex(index, linkedList->size);
+    return list_node(linkedList, index)->item;
 }
 
 void list_insert(LinkedList *linkedList, Node *pos, Node *node) {
@@ -105,13 +111,13 @@ Object *list_peekLast(LinkedList *linkedList) {
     return linkedList->tail->prev->item;
 }
 
-void listiter_dispose(void __unused *state) {}
+void listiter_dispose(void *state) {}
 
-bool listiter_hasNext(void __unused *object, void **state) {
+bool listiter_hasNext(void *object, void **state) {
     return ((Node *) *state)->next != NULL;
 }
 
-void *listiter_next(void __unused *object, void **state) {
+void *listiter_next(void *object, void **state) {
     Node **cur = (Node **) state;
     if ((*cur)->next != NULL) {
         Object *item = (*cur)->item;
@@ -121,11 +127,11 @@ void *listiter_next(void __unused *object, void **state) {
     errExit("No such element");
 }
 
-bool listiter_hasPrevious(void __unused *object, void **state) {
+bool listiter_hasPrevious(void *object, void **state) {
     return ((Node *) *state)->prev != NULL;
 }
 
-void *listiter_previous(void __unused *object, void **state) {
+void *listiter_previous(void *object, void **state) {
     Node **cur = (Node **) state;
     if ((*cur)->prev != NULL) {
         Object *item = (*cur)->item;
@@ -145,9 +151,11 @@ Iterator *list_descendingIterator(LinkedList *linkedList) {
     return iterator_new(linkedList, linkedList->tail->prev, listiter_dispose, listiter_hasPrevious, listiter_previous);
 }
 
-ListIterator *list_listIterator(LinkedList *linkedList) {
+ListIterator *list_listIterator(LinkedList *linkedList, int index) {
     requireNonNull(linkedList);
-    return listIterator_new(linkedList, linkedList->head->next, listiter_dispose, listiter_hasNext, listiter_next,
+    checkPositionIndex(index, linkedList->size);
+    Node *nextNode = index == linkedList->size ? linkedList->tail->prev : list_node(linkedList, index);
+    return listiterator_new(linkedList, nextNode, listiter_dispose, listiter_hasNext, listiter_next,
                             listiter_hasPrevious, listiter_previous);
 }
 

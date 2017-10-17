@@ -9,8 +9,6 @@
 Shell *shell_new() {
     Shell *shell = calloc(1, sizeof(Shell));
     shell->parser = parser_new();
-    shell->historyCount = HISTORY_COUNT;
-    shell->historyFileCount = HISTORY_FILE_COUNT;
     shell->aliases = hashtable_new(HT_INITIAL_CAPACITY, HT_LOAD_FACTOR);
     return shell;
 }
@@ -22,10 +20,10 @@ void shell_main(Shell *shell, FILE *input, FILE *output, FILE *error) {
     do {
         fprintf(output, SHELL_PROMPT);
         fflush(output);
-        Sequence *sequence = parser_parse(shell->parser, input, error);
-        if (sequence != NULL) {
-            sequence_exec(sequence);
-            sequence_dispose(sequence);
+        Executable *executable = parser_parse(shell->parser, input, error);
+        if (executable != NULL) {
+            executable_execute(executable);
+            executable_dispose(executable);
         }
     } while (parser_isAtLine(shell->parser));
 }

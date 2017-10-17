@@ -44,7 +44,7 @@ Iterator *list_iterator(LinkedList *linkedList);
 
 Iterator *list_descendingIterator(LinkedList *linkedList);
 
-ListIterator *list_listIterator(LinkedList *linkedList);
+ListIterator *list_listIterator(LinkedList *linkedList, int index);
 
 void list_dispose(LinkedList *linkedList);
 

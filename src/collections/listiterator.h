@@ -18,19 +18,19 @@ typedef struct listIterator {
     void *(*previous)(void *object, void **state);
 } ListIterator;
 
-ListIterator *listIterator_new(void *object, void *state, void (*dispose)(void *s),
+ListIterator *listiterator_new(void *object, void *state, void (*dispose)(void *s),
                                bool (*hasNext)(void *o, void **s),
                                void *(*next)(void *o, void **s), bool (*hasPrevious)(void *o, void **s),
                                void *(*previous)(void *o, void **s));
 
-bool listIterator_hasNext(ListIterator *iterator);
+bool listiterator_hasNext(ListIterator *iterator);
 
-void *listIterator_next(ListIterator *iterator);
+void *listiterator_next(ListIterator *iterator);
 
-bool listIterator_hasPrevious(ListIterator *iterator);
+bool listiterator_hasPrevious(ListIterator *iterator);
 
-void *listIterator_previous(ListIterator *iterator);
+void *listiterator_previous(ListIterator *iterator);
 
-void listIterator_dispose(ListIterator *iterator);
+void listiterator_dispose(ListIterator *iterator);
 
 #endif //SHELL_LISTITERATOR_H

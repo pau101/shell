@@ -7,31 +7,31 @@
 
 Sequence *sequence_new() {
     Sequence *sequence = calloc(1, sizeof(Sequence));
-    sequence->pipelines = list_new();
+    sequence->executables = list_new();
     return sequence;
 }
 
-void sequence_add(Sequence *sequence, Pipeline *pipeline) {
-    list_addLast(sequence->pipelines, object_new(&TYPE_PIPELINE, pipeline));
+int sequence_exec_(Object *e) {
+    return sequence_exec(object_get(e, &TYPE_SEQUENCE));
+}
+
+Executable *sequence_executable(Sequence *sequence) {
+    requireNonNull(sequence);
+    return executable_new(object_new(&TYPE_SEQUENCE, sequence), sequence_exec_);
+}
+
+void sequence_add(Sequence *sequence, Executable *executable) {
+    requireNonNull(sequence);
+    requireNonNull(executable);
+    list_addLast(sequence->executables, object_new(&TYPE_EXECUTABLE, executable));
 }
 
 int sequence_exec(Sequence *sequence) {
+    requireNonNull(sequence);
     int status = EXIT_SUCCESS;
-    Iterator *iter = list_iterator(sequence->pipelines);
+    Iterator *iter = list_iterator(sequence->executables);
     while (iterator_hasNext(iter)) {
-        Pipeline *pipeline = object_get(iterator_next(iter), &TYPE_PIPELINE);
-        pid_t cpid = fork();
-        if (cpid < 0) {
-            pExit("fork");
-        }
-        if (cpid == 0) {
-            pipeline_exec(pipeline);
-        } else {
-            pid_t w = waitpid(cpid, &status, 0);
-            if (w == -1) {
-                pExit("waitpid");
-            }
-        }
+        status = executable_execute(object_get(iterator_next(iter), &TYPE_EXECUTABLE));
     }
     iterator_dispose(iter);
     return status;
@@ -53,6 +53,6 @@ void sequence_dispose(void *o) {
     if (o == NULL) {
         return;
     }
-    list_dispose(((Sequence *) o)->pipelines);
+    list_dispose(((Sequence *) o)->executables);
     free(o);
 }

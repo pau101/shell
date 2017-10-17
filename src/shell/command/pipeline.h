@@ -5,16 +5,19 @@
 #include "../../collections/linkedlist/linkedlist.h"
 #include "../../util/util.h"
 #include "command.h"
+#include "../executable/executable.h"
 
 typedef struct pipeline {
-    LinkedList *commands;
+    LinkedList *executables;
 } Pipeline;
 
 Pipeline *pipeline_new();
 
-void pipeline_add(Pipeline *pipeline, Command *command);
+Executable *pipeline_executable(Pipeline *pipeline);
 
-void pipeline_exec(Pipeline *pipeline);
+void pipeline_add(Pipeline *pipeline, Executable *executable);
+
+int pipeline_exec(Pipeline *pipeline);
 
 char *pipeline_toString(void *o);
 

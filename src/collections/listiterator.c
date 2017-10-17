@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "listiterator.h"
 
-ListIterator *listIterator_new(void *object, void *state, void (*dispose)(void *s),
+ListIterator *listiterator_new(void *object, void *state, void (*dispose)(void *s),
                                bool (*hasNext)(void *o, void **s),
                                void *(*next)(void *o, void **s), bool (*hasPrevious)(void *o, void **s),
                                void *(*previous)(void *o, void **s)) {
@@ -16,23 +16,23 @@ ListIterator *listIterator_new(void *object, void *state, void (*dispose)(void *
     return iterator;
 }
 
-bool listIterator_hasNext(ListIterator *iterator) {
+bool listiterator_hasNext(ListIterator *iterator) {
     return iterator->hasNext(iterator->object, &iterator->state);
 }
 
-void *listIterator_next(ListIterator *iterator) {
+void *listiterator_next(ListIterator *iterator) {
     return iterator->next(iterator->object, &iterator->state);
 }
 
-bool listIterator_hasPrevious(ListIterator *iterator) {
+bool listiterator_hasPrevious(ListIterator *iterator) {
     return iterator->hasPrevious(iterator->object, &iterator->state);
 }
 
-void *listIterator_previous(ListIterator *iterator) {
+void *listiterator_previous(ListIterator *iterator) {
     return iterator->previous(iterator->object, &iterator->state);
 }
 
-void listIterator_dispose(ListIterator *iterator) {
+void listiterator_dispose(ListIterator *iterator) {
     if (iterator == NULL) {
         return;
     }
