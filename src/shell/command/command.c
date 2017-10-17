@@ -52,7 +52,6 @@ int command_exec(Command *command) {
             redirect_perform(object_get(iterator_next(wIter), &TYPE_REDIRECT));
         }
         iterator_dispose(rIter);
-        printf("exec: %s\n", words[0]);
         execvp(words[0], words);
         pExit(words[0]);
     }
@@ -61,7 +60,6 @@ int command_exec(Command *command) {
     if (w == -1) {
         pExit("waitpid");
     }
-    printf("command status: %d\n", status);
     free(words);
     return status;
 }

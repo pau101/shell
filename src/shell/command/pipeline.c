@@ -53,9 +53,7 @@ void pipeline_pipe(int fd[2], Executable *executable, bool doRead, bool doWrite)
             }
             close(fd[READ]);
         }
-        int status = executable_execute(executable);
-        fprintf(stderr, "pid: %d, executable status: %d\n", getpid(), status);
-        exit(status);
+        exit(executable_execute(executable));
     }
 }
 
@@ -73,9 +71,7 @@ int pipeline_exec(Pipeline *pipeline) {
         ListIterator *itr = list_listIterator(pipeline->executables, pipeline->executables->size);
         while (listiterator_hasPrevious(itr)) {
             Executable *executable = object_get(listiterator_previous(itr), &TYPE_EXECUTABLE);
-            fprintf(stderr, "pre pipe\n");
             pipeline_pipe(fd, executable, listiterator_hasPrevious(itr), listiterator_hasNext(itr));
-            fprintf(stderr, "post pipe\n");
         }
         listiterator_dispose(itr);
         exit(EXIT_SUCCESS);
@@ -85,8 +81,6 @@ int pipeline_exec(Pipeline *pipeline) {
     if (w == -1) {
         pExit("waitpid");
     }
-    fprintf(stderr, "child: %d\n", cpid);
-    fprintf(stderr, "pipe status: %d\n", status);
     return status;
 }
 
