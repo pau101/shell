@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include "../../util/util.h"
 
 char *string_toString(void *o) {
     return o;
@@ -17,6 +18,10 @@ unsigned int string_hashCode(void *o) {
 
 int string_compareTo(void *o1, void *o2) {
     return strcmp(o1, o2);
+}
+
+void *string_clone(void *o) {
+    return newString(o);
 }
 
 void string_dispose(void *o) {

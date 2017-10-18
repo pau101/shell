@@ -32,6 +32,11 @@ int executable_compareTo(void *o1, void *o2) {
     return reference_compareTo(o1, o2);
 }
 
+void *executable_clone(void *o) {
+    Executable *e = (Executable *) o;
+    return executable_new(object_clone(e->executor), e->execute);
+}
+
 void executable_dispose(void *o) {
     if (o == NULL) {
         return;

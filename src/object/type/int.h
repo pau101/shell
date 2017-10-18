@@ -9,8 +9,10 @@ unsigned int int_hashCode(void *o);
 
 int int_compareTo(void *o1, void *o2);
 
+void *int_clone(void *o);
+
 void int_dispose(void *o);
 
-static const DataType TYPE_INT = {"INT", int_toString, int_hashCode, int_compareTo, int_dispose};
+static const DataType TYPE_INT = {"INT", int_toString, int_hashCode, int_compareTo, int_clone, int_dispose};
 
 #endif //SHELL_INT_H

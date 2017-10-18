@@ -20,6 +20,8 @@ unsigned int object_hashCode(Object *object);
 
 int object_compareTo(Object *object1, Object *object2);
 
+Object *object_clone(Object *object);
+
 void object_dispose(Object *object);
 
 #endif //SHELL_OBJECT_H

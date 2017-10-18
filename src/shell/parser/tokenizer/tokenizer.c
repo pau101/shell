@@ -7,28 +7,6 @@
 #include "../../../object/type/int.h"
 #include "../../../util/preconditions.h"
 
-#define \
-    fgetcCheckEOF(token) ({ \
-        if ((c = fgetc(input)) == EOF) { \
-            return token_new(token, NULL); \
-        } \
-    })
-
-#define \
-    fgetcWithContinuation(token) ({ \
-        fgetcCheckEOF(token); \
-        if (c == '\\') { \
-            int co = c; \
-            fgetcCheckEOF(token); \
-            if (c == '\r' || c == '\n') { \
-                fgetcCheckEOF(token); \
-            } else { \
-                ungetc(c, input); \
-                c = co; \
-            } \
-        } \
-    })
-
 Tokenizer *tokenizer_new() {
     return calloc(1, sizeof(Tokenizer));
 }
@@ -37,23 +15,70 @@ Object *tokenizer_newString(char *in) {
     return object_new(&TYPE_STRING, newString(in));
 }
 
+bool tokenizer_read(FILE *input, int *c) {
+    if ((*c = fgetc(input)) == EOF) {
+        return true;
+    }
+    return false;
+}
+
+bool tokenizer_get(FILE *input, int *c) {
+    if (tokenizer_read(input, c)) {
+        return true;
+    }
+    if (*c == '\\') {
+        int co = *c;
+        if (tokenizer_read(input, c)) {
+            return true;
+        }
+        if (*c == '\r' || *c == '\n') {
+            if (tokenizer_read(input, c)) {
+                return true;
+            }
+        } else {
+            ungetc(*c, input);
+            *c = co;
+        }
+    }
+    return false;
+}
+
+Token *tokenizer_checkEOL(int c) {
+    if (c == '\n' || c == '\r') {
+        return token_new(TOK_EOL, tokenizer_newString(c == '\n' ? "\n" : "\r"));
+    }
+    return NULL;
+}
+
 Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
     requireNonNull(tokenizer);
     int c;
     do {
-        fgetcWithContinuation(TOK_END);
+        if (tokenizer_get(input, &c)) {
+            return token_new(TOK_END, NULL);
+        }
     } while (c == ' ' || c == '\t');
-    if (c == '\n' || c == '\r') {
-        return token_new(TOK_EOL, tokenizer_newString(c == '\n' ? "\n" : "\r"));
+    Token *eol = tokenizer_checkEOL(c);
+    if (eol != NULL) {
+        return eol;
     }
     // TODO: trie for ugly switch
     switch (c) {
+        case '#': {
+            while (!tokenizer_read(input, &c)) {
+                if ((eol = tokenizer_checkEOL(c)) != NULL) {
+                    return eol;
+                }
+            }
+        }
         case '|':
             return token_new(TOK_PIPE, tokenizer_newString("|"));
         case ';':
             return token_new(TOK_SEQUENCE, tokenizer_newString(";"));
         case '>': {
-            fgetcWithContinuation(TOK_OUTPUT);
+            if (tokenizer_get(input, &c)) {
+                return token_new(TOK_OUTPUT, tokenizer_newString(">"));
+            }
             switch (c) {
                 case '|':
                     return token_new(TOK_OUTPUT_CLOBBER, tokenizer_newString(">|"));
@@ -81,12 +106,16 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
     bool inSingleQuote = false;
     bool inDoubleQuote = false;
     bool isNumeric = true;
+    bool wasDelimited = true;
     do {
         bool isUnescaped = true;
         if (!inSingleQuote && c == '\\') {
             isUnescaped = false;
             int co = c;
-            fgetcWithContinuation(TOK_WORD);
+            if (tokenizer_get(input, &c)) {
+                wasDelimited = false;
+                break;
+            }
             if (inDoubleQuote && !strchr("\"\\\r\n", c)) {
                 isUnescaped = true;
                 ungetc(c, input);
@@ -112,9 +141,14 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
             }
             value[count++] = (char) c;
         }
-        fgetcWithContinuation(TOK_WORD);
+        if (tokenizer_get(input, &c)) {
+            wasDelimited = false;
+            break;
+        }
     } while (inSingleQuote || inDoubleQuote || !strchr("|;><() \t\r\n", c));
-    ungetc(c, input);
+    if (wasDelimited) {
+        ungetc(c, input);
+    }
     value = realloc(value, (count + 1) * sizeof(char));
     value[count] = '\0';
     if (count > 0 && isNumeric && (c == '>' || c == '<' || lastToken->type == TOK_OUTPUT_IO_NUMBER)) {

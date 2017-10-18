@@ -39,9 +39,11 @@ unsigned int execbldr_hashCode(void *o);
 
 int execbldr_compareTo(void *o1, void *o2);
 
+void *execbldr_clone(void *o);
+
 void execbldr_dispose(void *o);
 
 static const DataType TYPE_EXECUTABLE_BUILDER = {"EXECBLDR", execbldr_toString, execbldr_hashCode, execbldr_compareTo,
-                                                 execbldr_dispose};
+                                                 execbldr_clone, execbldr_dispose};
 
 #endif //SHELL_EXECUTABLEBUILDER_H

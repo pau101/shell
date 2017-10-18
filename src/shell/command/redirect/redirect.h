@@ -23,7 +23,9 @@ int redirect_compareTo(void *o1, void *o2);
 
 void redirect_dispose(void *o);
 
+void *redirect_clone(void *o);
+
 static const DataType TYPE_REDIRECT = {"REDIRECT", redirect_toString, redirect_hashCode, redirect_compareTo,
-                                       redirect_dispose};
+                                       redirect_clone, redirect_dispose};
 
 #endif //SHELL_REDIRECT_H

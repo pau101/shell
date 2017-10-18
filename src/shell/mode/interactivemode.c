@@ -3,9 +3,37 @@
 #include "../../util/preconditions.h"
 #include "noninteractivemode.h"
 
-#define RUN_COMMANDS_FILE "./.msshrc"
+#define RUN_COMMANDS_FILE "/home/Paul/.msshrc"
 
-void ishmode_init(Shell *shell, IOStreams *streams) {
+typedef struct interactiveData {
+    Hashtable *history;
+} InteractiveShellData;
+
+InteractiveShellData *ishdata_new() {
+    InteractiveShellData *ishdata = calloc(1, sizeof(InteractiveShellData));
+    ishdata->history = hashtable_new(HT_INITIAL_CAPACITY, HT_LOAD_FACTOR);
+    return ishdata;
+}
+
+void ishdata_dispose(InteractiveShellData *ishdata) {
+    if (ishdata == NULL) {
+        return;
+    }
+    hashtable_dispose(ishdata->history);
+    free(ishdata);
+}
+
+ShellMode *ishmode_new() {
+    return shmode_new(
+            ishdata_new(),
+            ishmode_dispose,
+            ishmode_onInit,
+            ishmode_onPreParse,
+            ishmode_onPostParse
+    );
+}
+
+void ishmode_onInit(void **data, Shell *shell, IOStreams *streams) {
     requireNonNull(shell);
     requireNonNull(streams);
     shell_setVariable(shell, SHELL_PROMPT_1, SHELL_PROMPT_1_DEFAULT);
@@ -13,9 +41,12 @@ void ishmode_init(Shell *shell, IOStreams *streams) {
     shell_setVariable(shell, HIST_FILE_SIZE, HIST_FILE_SIZE_DEFAULT);
     FILE *rc = fopen(RUN_COMMANDS_FILE, "a+");
     if (rc != NULL) {
+        fseek(rc, 0, SEEK_SET);
         IOStreams *rcStreams = iostreams_new(rc, streams->output, streams->error);
-        shell_execute(shell, rcStreams, &NON_INTERACTIVE_MODE);
+        ShellMode *mode = nishmode_new();
+        shell_execute(shell, rcStreams, mode);
         iostreams_dispose(rcStreams);
+        shmode_dispose(mode);
         if (fclose(rc) == EOF) {
             pExit("fclose");
         }
@@ -29,14 +60,21 @@ void ishmode_printVariable(Shell *shell, FILE *output, char *key) {
     free(value);
 }
 
-void ishmode_promptPrimary(Shell *shell, IOStreams *streams) {
+void ishmode_onPreParse(void **data, Shell *shell, IOStreams *streams) {
     requireNonNull(shell);
     requireNonNull(streams);
     ishmode_printVariable(shell, streams->output, SHELL_PROMPT_1);
 }
 
-void ishmode_promptSecondary(Shell *shell, IOStreams *streams) {
+void ishmode_onPostParse(void **data, Shell *shell, IOStreams *streams, Executable *executable) {
     requireNonNull(shell);
     requireNonNull(streams);
+    if (executable != NULL) {
+        executable_dispose(executable_clone(executable));
+    }
     ishmode_printVariable(shell, streams->output, SHELL_PROMPT_0);
+}
+
+void ishmode_dispose(void *data) {
+    ishdata_dispose(data);
 }

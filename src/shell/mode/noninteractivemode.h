@@ -3,16 +3,14 @@
 
 #include "shellmode.h"
 
-void nishmode_init(Shell *shell, IOStreams *streams);
+ShellMode *nishmode_new();
 
-void nishmode_promptPrimary(Shell *shell, IOStreams *streams);
+void nishmode_onInit(void **data, Shell *shell, IOStreams *streams);
 
-void nishmode_promptSecondary(Shell *shell, IOStreams *streams);
+void nishmode_onPreParse(void **data, Shell *shell, IOStreams *streams);
 
-static const ShellMode NON_INTERACTIVE_MODE = {
-        nishmode_init,
-        nishmode_promptPrimary,
-        nishmode_promptSecondary
-};
+void nishmode_onPostParse(void **data, Shell *shell, IOStreams *streams, Executable *executable);
+
+void nishmode_dispose(void *data);
 
 #endif //SHELL_NONINTERACTIVEMODE_H

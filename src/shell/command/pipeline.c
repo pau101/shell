@@ -96,6 +96,17 @@ int pipeline_compareTo(void *o1, void *o2) {
     return reference_compareTo(o1, o2);
 }
 
+void *pipeline_clone(void *o) {
+    Pipeline *p = (Pipeline *) o;
+    Pipeline *n = pipeline_new();
+    Iterator *itr = list_iterator(p->executables);
+    while (iterator_hasNext(itr)) {
+        pipeline_add(n, executable_clone(object_get(iterator_next(itr), &TYPE_EXECUTABLE)));
+    }
+    iterator_dispose(itr);
+    return n;
+}
+
 void pipeline_dispose(void *o) {
     if (o == NULL) {
         return;

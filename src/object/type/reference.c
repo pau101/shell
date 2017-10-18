@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "../../util/preconditions.h"
 
 #define MAX_PTR_CHARS 20
 
@@ -15,6 +16,11 @@ unsigned int reference_hashCode(void *o) {
 
 int reference_compareTo(void *o1, void *o2) {
     return o1 < o2 ? -1 : o1 == o2 ? 0 : 1;
+}
+
+void *reference_clone(void *o) {
+    errExit("clone not supported");
+    return NULL;
 }
 
 void reference_dispose(void *reference) {

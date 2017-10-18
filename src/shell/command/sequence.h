@@ -23,9 +23,11 @@ unsigned int sequence_hashCode(void *o);
 
 int sequence_compareTo(void *o1, void *o2);
 
+void *sequence_clone(void *o);
+
 void sequence_dispose(void *o);
 
 static const DataType TYPE_SEQUENCE = {"SEQUENCE", sequence_toString, sequence_hashCode, sequence_compareTo,
-                                       sequence_dispose};
+                                       sequence_clone, sequence_dispose};
 
 #endif //SHELL_SEQUENCE_H

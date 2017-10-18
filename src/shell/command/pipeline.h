@@ -25,9 +25,11 @@ unsigned int pipeline_hashCode(void *o);
 
 int pipeline_compareTo(void *o1, void *o2);
 
+void *pipeline_clone(void *o);
+
 void pipeline_dispose(void *o);
 
 static const DataType TYPE_PIPELINE = {"PIPELINE", pipeline_toString, pipeline_hashCode, pipeline_compareTo,
-                                       pipeline_dispose};
+                                       pipeline_clone, pipeline_dispose};
 
 #endif //SHELL_PIPELINE_H

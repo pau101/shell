@@ -11,6 +11,8 @@ int string_compareTo(void *o1, void *o2);
 
 void string_dispose(void *o);
 
-static const DataType TYPE_STRING = {"STRING", string_toString, string_hashCode, string_compareTo, string_dispose};
+void *string_clone(void *o);
+
+static const DataType TYPE_STRING = {"STRING", string_toString, string_hashCode, string_compareTo, string_clone, string_dispose};
 
 #endif //SHELL_STRING_H

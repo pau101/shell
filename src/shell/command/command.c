@@ -76,6 +76,22 @@ int command_compareTo(void *o1, void *o2) {
     return reference_compareTo(o1, o2);
 }
 
+void *command_clone(void *o) {
+    Command *c = (Command *) o;
+    Command *n = command_new();
+    Iterator *itr = list_iterator(c->words);
+    while (iterator_hasNext(itr)) {
+        command_addWord(n, string_clone(object_get(iterator_next(itr), &TYPE_STRING)));
+    }
+    iterator_dispose(itr);
+    itr = list_iterator(c->redirects);
+    while (iterator_hasNext(itr)) {
+        command_addRedirect(n, redirect_clone(object_get(iterator_next(itr), &TYPE_REDIRECT)));
+    }
+    iterator_dispose(itr);
+    return n;
+}
+
 void command_dispose(void *o) {
     if (o == NULL) {
         return;

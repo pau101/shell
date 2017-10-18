@@ -53,6 +53,10 @@ int object_compareTo(Object *object1, Object *object2) {
     return object1->dataType->compareTo(object1->data, object2->data);
 }
 
+Object *object_clone(Object *object) {
+    return object == NULL ? NULL : object_new(object->dataType, object->dataType->clone(object->data));
+}
+
 void object_dispose(Object *object) {
     if (object == NULL) {
         return;

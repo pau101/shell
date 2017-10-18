@@ -58,6 +58,11 @@ int execbldr_compareTo(void *o1, void *o2) {
     return reference_compareTo(o1, o2);
 }
 
+void *execbldr_clone(void *o) {
+    ExecutableBuilder *e = (ExecutableBuilder *) o;
+    return execbldr_new(executable_clone(e->executable), e->beginPipe, e->beginSequence, e->beginEnd);
+}
+
 void execbldr_dispose(void *o) {
     if (o == NULL) {
         return;

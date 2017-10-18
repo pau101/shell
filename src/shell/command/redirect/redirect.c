@@ -17,7 +17,6 @@ void *redirect_perform(Redirect *redirect) {
     if (dup2(fileno(f), redirect->source) < 0) {
         pExit("dup2");
     }
-    fclose(f);
 }
 
 char *redirect_toString(void *o) {
@@ -30,6 +29,11 @@ unsigned int redirect_hashCode(void *o) {
 
 int redirect_compareTo(void *o1, void *o2) {
     return reference_compareTo(o1, o2);
+}
+
+void *redirect_clone(void *o) {
+    Redirect *r = (Redirect *) o;
+    return redirect_new(r->source, handle_clone(r->destination));
 }
 
 void redirect_dispose(void *o) {

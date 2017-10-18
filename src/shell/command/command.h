@@ -27,9 +27,11 @@ unsigned int command_hashCode(void *o);
 
 int command_compareTo(void *o1, void *o2);
 
+void *command_clone(void *o);
+
 void command_dispose(void *o);
 
 static const DataType TYPE_COMMAND = {"COMMAND", command_toString, command_hashCode, command_compareTo,
-                                      command_dispose};
+                                      command_clone, command_dispose};
 
 #endif //SHELL_COMMAND_H

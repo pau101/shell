@@ -17,7 +17,7 @@ typedef struct shell {
 
 Shell *shell_new();
 
-void shell_init(Shell *shell, IOStreams *streams, const ShellMode *mode);
+void shell_init(Shell *shell, IOStreams *streams, ShellMode *mode);
 
 void shell_setVariable(Shell *shell, char *key, char *value);
 
@@ -25,7 +25,7 @@ char *shell_getVariable(Shell *shell, char *key);
 
 void shell_main(Shell *shell, IOStreams *streams, int argc, char **argv);
 
-int shell_execute(Shell *shell, IOStreams *streams, const ShellMode *mode);
+int shell_execute(Shell *shell, IOStreams *streams, ShellMode *mode);
 
 void shell_dispose(Shell *shell);
 

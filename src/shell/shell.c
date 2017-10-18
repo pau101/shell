@@ -14,10 +14,10 @@ Shell *shell_new() {
     return shell;
 }
 
-void shell_init(Shell *shell, IOStreams *streams, const ShellMode *mode) {
+void shell_init(Shell *shell, IOStreams *streams, ShellMode *mode) {
     requireNonNull(shell);
     requireNonNull(streams);
-    shmode_init(mode, shell, streams);
+    onInit(mode, shell, streams);
 }
 
 void shell_setVariable(Shell *shell, char *key, char *value) {
@@ -49,20 +49,21 @@ void shell_main(Shell *shell, IOStreams *streams, int argc, char **argv) {
     requireNonNull(shell);
     requireNonNull(streams);
     // TODO --norc --rcfile -c
-    const ShellMode *mode = &INTERACTIVE_MODE;
+    ShellMode *mode = ishmode_new();
     shell_init(shell, streams, mode);
     shell_execute(shell, streams, mode);
+    shmode_dispose(mode);
 }
 
-int shell_execute(Shell *shell, IOStreams *streams, const ShellMode *mode) {
+int shell_execute(Shell *shell, IOStreams *streams, ShellMode *mode) {
     requireNonNull(shell);
     requireNonNull(streams);
     int status = EXIT_SUCCESS;
     parser_reset(shell->parser);
     do {
-        shmode_promptPrimary(mode, shell, streams);
+        shmode_onPreParse(mode, shell, streams);
         Executable *executable = parser_parse(shell->parser, streams->input, streams->output);
-        shmode_promptSecondary(mode, shell, streams);
+        shmode_onPostParse(mode, shell, streams, executable);
         if (executable != NULL) {
             status = executable_execute(executable);
             executable_dispose(executable);

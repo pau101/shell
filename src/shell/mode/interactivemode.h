@@ -13,16 +13,14 @@
 #define HIST_SIZE_DEFAULT "100"
 #define HIST_FILE_SIZE_DEFAULT "1000"
 
-void ishmode_init(Shell *shell, IOStreams *streams);
+ShellMode *ishmode_new();
 
-void ishmode_promptPrimary(Shell *shell, IOStreams *streams);
+void ishmode_onInit(void **data, Shell *shell, IOStreams *streams);
 
-void ishmode_promptSecondary(Shell *shell, IOStreams *streams);
+void ishmode_onPreParse(void **data, Shell *shell, IOStreams *streams);
 
-static const ShellMode INTERACTIVE_MODE = {
-        ishmode_init,
-        ishmode_promptPrimary,
-        ishmode_promptSecondary
-};
+void ishmode_onPostParse(void **data, Shell *shell, IOStreams *streams, Executable *executable);
+
+void ishmode_dispose(void *data);
 
 #endif //SHELL_INTERACTIVEMODE_H

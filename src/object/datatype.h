@@ -12,6 +12,8 @@ typedef struct dataType {
 
     int (*compareTo)(void *o1, void *o2);
 
+    void *(*clone)(void *o);
+
     void (*dispose)(void *o);
 } DataType;
 
