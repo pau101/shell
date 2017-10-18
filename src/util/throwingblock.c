@@ -21,7 +21,7 @@ void tb_throw(ThrowingBlock *throwingBlock, char *errorMessage) {
     requireNonNull(throwingBlock);
     requireNonNull(errorMessage);
     free(throwingBlock->errorMessage);
-    throwingBlock->errorMessage = cloneString(errorMessage);
+    throwingBlock->errorMessage = newString(errorMessage);
     longjmp(TB_ENV, ERROR_STATUS);
 }
 
@@ -29,7 +29,7 @@ int tb_trace(ThrowingBlock *throwingBlock, Object *object) {
     requireNonNull(throwingBlock);
     requireNonNull(object);
     int id = throwingBlock->nextId++;
-    Object *key = object_new(&TYPE_INT, cloneInt(id));
+    Object *key = object_new(&TYPE_INT, newInt(id));
     Object *val = hashtable_put(throwingBlock->allocations, key, object);
     if (val != NULL) {
         errExit("illegal state");
@@ -39,7 +39,7 @@ int tb_trace(ThrowingBlock *throwingBlock, Object *object) {
 
 void tb_untrace(ThrowingBlock *throwingBlock, int id) {
     requireNonNull(throwingBlock);
-    Object *key = object_new(&TYPE_INT, cloneInt(id));
+    Object *key = object_new(&TYPE_INT, newInt(id));
     Object *val = hashtable_remove(throwingBlock->allocations, key);
     object_dispose(key);
     if (val == NULL) {

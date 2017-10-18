@@ -34,4 +34,6 @@ const char *token_getName(Token *token);
 
 void token_dispose(Token *token);
 
+TokenType *cloneTokenType(TokenType in);
+
 #endif //SHELL_TOKEN_H

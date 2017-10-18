@@ -5,6 +5,7 @@
 #include "../../../object/type/string.h"
 #include "../../../util/util.h"
 #include "../../../object/type/int.h"
+#include "../../../util/preconditions.h"
 
 #define \
     fgetcCheckEOF(token) ({ \
@@ -33,10 +34,11 @@ Tokenizer *tokenizer_new() {
 }
 
 Object *tokenizer_newString(char *in) {
-    return object_new(&TYPE_STRING, cloneString(in));
+    return object_new(&TYPE_STRING, newString(in));
 }
 
 Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
+    requireNonNull(tokenizer);
     int c;
     do {
         fgetcWithContinuation(TOK_END);
@@ -119,7 +121,7 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
         long num = strtol(value, NULL, 10);
         if (num <= INT_MAX) {
             free(value);
-            return token_new(TOK_IO_NUMBER, object_new(&TYPE_INT, cloneInt((int) num)));
+            return token_new(TOK_IO_NUMBER, object_new(&TYPE_INT, newInt((int) num)));
         }
     }
     return token_new(TOK_WORD, object_new(&TYPE_STRING, value));

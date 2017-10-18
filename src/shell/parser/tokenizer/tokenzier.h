@@ -5,6 +5,7 @@
 #include "token.h"
 
 typedef struct tokenizer {
+    char _; // place holder
 } Tokenizer;
 
 Tokenizer *tokenizer_new();

@@ -7,19 +7,19 @@
 #define HT_INITIAL_CAPACITY 11
 #define HT_LOAD_FACTOR 0.75
 
-typedef struct entry {
+typedef struct htEntry {
     unsigned int hash;
     Object *key;
     Object *value;
-    struct entry *next;
-} Entry;
+    struct htEntry *next;
+} HTEntry;
 
-Entry *entry_new(unsigned int hash, Object *key, Object *value, Entry *next);
+HTEntry *entry_new(unsigned int hash, Object *key, Object *value, HTEntry *next);
 
-void entry_dispose(Entry *entry);
+void entry_dispose(HTEntry *entry);
 
 typedef struct hashtable {
-    Entry **table;
+    HTEntry **table;
     unsigned int capacity;
     unsigned int size;
     unsigned int threshold;

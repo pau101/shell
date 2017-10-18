@@ -1,8 +1,8 @@
 #ifndef SHELL_UTIL_H
 #define SHELL_UTIL_H
 
-char *cloneString(char *in);
+char *newString(char *in);
 
-int *cloneInt(int in);
+int *newInt(int in);
 
 #endif //SHELL_UTIL_H

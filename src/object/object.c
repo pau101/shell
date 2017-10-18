@@ -36,7 +36,7 @@ void *object_getAndDispose(Object *object, const DataType *dataType) {
 }
 
 char *object_toString(Object *object) {
-    return object == NULL ? cloneString("") : object->dataType->toString(object->data);
+    return object == NULL ? newString("null") : object->dataType->toString(object->data);
 }
 
 unsigned int object_hashCode(Object *object) {

@@ -5,9 +5,9 @@
 
 #define MIN(a, b) (a) < (b) ? (a) : (b);
 
-Entry *entry_new(unsigned int hash, Object *key, Object *value, Entry *next) {
+HTEntry *entry_new(unsigned int hash, Object *key, Object *value, HTEntry *next) {
     requireNonNull(key);
-    Entry *entry = calloc(1, sizeof(Entry));
+    HTEntry *entry = calloc(1, sizeof(HTEntry));
     entry->hash = hash;
     entry->key = key;
     entry->value = value;
@@ -15,13 +15,13 @@ Entry *entry_new(unsigned int hash, Object *key, Object *value, Entry *next) {
     return entry;
 }
 
-void entry_dispose(Entry *entry) {
+void entry_dispose(HTEntry *entry) {
     if (entry == NULL) {
         return;
     }
     object_dispose(entry->key);
     object_dispose(entry->value);
-    for (Entry *e = entry->next; e != NULL; e = e->next) {
+    for (HTEntry *e = entry->next; e != NULL; e = e->next) {
         entry_dispose(entry);
     }
     free(entry);
@@ -29,7 +29,7 @@ void entry_dispose(Entry *entry) {
 
 Hashtable *hashtable_new(unsigned int initialCapacity, float loadFactor) {
     Hashtable *hashtable = calloc(1, sizeof(Hashtable));
-    hashtable->table = calloc(initialCapacity, sizeof(Entry *));
+    hashtable->table = calloc(initialCapacity, sizeof(HTEntry *));
     hashtable->capacity = initialCapacity;
     hashtable->size = 0;
     hashtable->threshold = (unsigned int) (initialCapacity * loadFactor);
@@ -39,7 +39,7 @@ Hashtable *hashtable_new(unsigned int initialCapacity, float loadFactor) {
 
 void hashtable_rehash(Hashtable *hashtable) {
     unsigned int oldCapacity = hashtable->capacity;
-    Entry **oldTable = hashtable->table;
+    HTEntry **oldTable = hashtable->table;
     unsigned int newCapacity = oldCapacity * 2 + 1;
     if (newCapacity < oldCapacity) {
         if (oldCapacity == UINT_MAX - 1) {
@@ -47,13 +47,13 @@ void hashtable_rehash(Hashtable *hashtable) {
         }
         newCapacity = UINT_MAX - 1;
     }
-    Entry **newTable = calloc(newCapacity, sizeof(Entry *));
+    HTEntry **newTable = calloc(newCapacity, sizeof(HTEntry *));
     hashtable->table = newTable;
     hashtable->capacity = newCapacity;
     hashtable->threshold = MIN((unsigned int) (newCapacity * hashtable->loadFactor), UINT_MAX);
     for (unsigned int i = oldCapacity; i-- > 0;) {
-        for (Entry *old = oldTable[i]; old != NULL;) {
-            Entry *e = old;
+        for (HTEntry *old = oldTable[i]; old != NULL;) {
+            HTEntry *e = old;
             old = old->next;
             unsigned int index = e->hash % newCapacity;
             e->next = newTable[index];
@@ -68,7 +68,7 @@ Object *hashtable_put(Hashtable *hashtable, Object *key, Object *value) {
     requireNonNull(key);
     unsigned int hash = object_hashCode(key);
     unsigned int index = hash % hashtable->capacity;
-    for (Entry *entry = hashtable->table[index]; entry != NULL; entry = entry->next) {
+    for (HTEntry *entry = hashtable->table[index]; entry != NULL; entry = entry->next) {
         if (entry->hash == hash && object_compareTo(entry->key, key) == 0) {
             Object *old = entry->value;
             entry->value = value;
@@ -80,7 +80,7 @@ Object *hashtable_put(Hashtable *hashtable, Object *key, Object *value) {
         hash = object_hashCode(key);
         index = hash % hashtable->capacity;
     }
-    Entry *e = hashtable->table[index];
+    HTEntry *e = hashtable->table[index];
     hashtable->table[index] = entry_new(hash, key, value, e);
     hashtable->size++;
     return NULL;
@@ -91,7 +91,7 @@ Object *hashtable_get(Hashtable *hashtable, Object *key) {
     requireNonNull(key);
     unsigned int hash = object_hashCode(key);
     unsigned int index = hash % hashtable->capacity;
-    for (Entry *e = hashtable->table[index]; e != NULL; e = e->next) {
+    for (HTEntry *e = hashtable->table[index]; e != NULL; e = e->next) {
         if (e->hash == hash && object_compareTo(e->key, key) == 0) {
             return e->value;
         }
@@ -104,8 +104,8 @@ Object *hashtable_remove(Hashtable *hashtable, Object *key) {
     requireNonNull(key);
     unsigned int hash = object_hashCode(key);
     unsigned int index = hash % hashtable->capacity;
-    Entry *e = hashtable->table[index];
-    for (Entry *prev = NULL; e != NULL; prev = e, e = e->next) {
+    HTEntry *e = hashtable->table[index];
+    for (HTEntry *prev = NULL; e != NULL; prev = e, e = e->next) {
         if (e->hash == hash && object_compareTo(e->key, key) == 0) {
             if (prev != NULL) {
                 prev->next = e->next;
@@ -123,7 +123,7 @@ Object *hashtable_remove(Hashtable *hashtable, Object *key) {
 
 typedef struct hashtableIter {
     int index;
-    Entry *entry;
+    HTEntry *entry;
 } HashtableIter;
 
 void hashtableiter_dispose(void *state) {
@@ -136,7 +136,7 @@ void hashtableiter_dispose(void *state) {
 bool hashtableitr_hasNext(void *object, void **state) {
     Hashtable *hashtable = (Hashtable *) object;
     HashtableIter *itr = (HashtableIter *) *state;
-    Entry *e = itr->entry;
+    HTEntry *e = itr->entry;
     int i = itr->index;
     while (e == NULL && i > 0) {
         e = hashtable->table[--i];
@@ -149,7 +149,7 @@ bool hashtableitr_hasNext(void *object, void **state) {
 void *hashtableitr_next(void *object, void **state) {
     Hashtable *hashtable = (Hashtable *) object;
     HashtableIter *itr = (HashtableIter *) *state;
-    Entry *et = itr->entry;
+    HTEntry *et = itr->entry;
     int i = itr->index;
     while (et == NULL && i > 0) {
         et = hashtable->table[--i];
@@ -157,7 +157,7 @@ void *hashtableitr_next(void *object, void **state) {
     itr->entry = et;
     itr->index = i;
     if (et != NULL) {
-        Entry *e = itr->entry;
+        HTEntry *e = itr->entry;
         itr->entry = e->next;
         return e;
     }

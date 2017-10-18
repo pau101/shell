@@ -20,7 +20,6 @@ static const char *TOKEN_NAMES[TOKEN_COUNT] = {
 };
 
 Token *token_new(TokenType type, Object *value) {
-    requireNonNull(value);
     Token *token = calloc(1, sizeof(Token));
     token->type = type;
     token->value = value;
@@ -38,4 +37,10 @@ void token_dispose(Token *token) {
     }
     object_dispose(token->value);
     free(token);
+}
+
+TokenType *cloneTokenType(TokenType in) {
+    TokenType *out = malloc(sizeof(TokenType *));
+    *out = in;
+    return out;
 }

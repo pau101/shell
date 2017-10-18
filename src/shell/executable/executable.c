@@ -18,7 +18,10 @@ int executable_execute(Executable *executable) {
 }
 
 char *executable_toString(void *o) {
-    return reference_toString(o);
+    if (o == NULL) {
+        return reference_toString(o);
+    }
+    return object_toString(((Executable *) o)->executor);
 }
 
 unsigned int executable_hashCode(void *o) {

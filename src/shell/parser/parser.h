@@ -12,6 +12,8 @@ typedef struct parser {
 
 Parser *parser_new();
 
+void parser_reset(Parser *parser);
+
 bool parser_isInLine(Parser *parser);
 
 bool parser_isAtLine(Parser *parser);
