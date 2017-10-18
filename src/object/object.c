@@ -22,6 +22,19 @@ void *object_get(Object *object, const DataType *dataType) {
     errExit("type mismatch");
 }
 
+void *object_getAndDispose(Object *object, const DataType *dataType) {
+    if (object == NULL) {
+        return NULL;
+    }
+    if (!datatype_equals(object->dataType, dataType)) {
+        errExit("type mismatch");
+    }
+    void *data = object->data;
+    object->data = NULL;
+    object_dispose(object);
+    return data;
+}
+
 char *object_toString(Object *object) {
     return object == NULL ? cloneString("") : object->dataType->toString(object->data);
 }

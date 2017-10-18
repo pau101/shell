@@ -1,9 +1,9 @@
 #ifndef SHELL_PARSER_H
 #define SHELL_PARSER_H
 
-#include "token.h"
-#include "tokenzier.h"
 #include "../command/sequence.h"
+#include "tokenizer/tokenzier.h"
+#include "tokenizer/token.h"
 
 typedef struct parser {
     Tokenizer *tokenizer;

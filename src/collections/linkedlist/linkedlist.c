@@ -31,6 +31,19 @@ bool list_isEmpty(LinkedList *linkedList) {
     return linkedList->size == 0;
 }
 
+bool list_isSingular(LinkedList *linkedList) {
+    requireNonNull(linkedList);
+    return linkedList->size == 1;
+}
+
+Object *list_single(LinkedList *linkedList) {
+    requireNonNull(linkedList);
+    if (list_isSingular(linkedList)) {
+        return list_peekFirst(linkedList);
+    }
+    errExit("list has more than one element");
+}
+
 Node *list_node(LinkedList *linkedList, int index) {
     if (index < linkedList->size / 2) {
         Node *n = linkedList->head->next;

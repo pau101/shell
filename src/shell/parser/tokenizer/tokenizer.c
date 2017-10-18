@@ -2,9 +2,9 @@
 #include <string.h>
 #include <limits.h>
 #include "tokenzier.h"
-#include "../../util/util.h"
-#include "../../object/type/string.h"
-#include "../../object/type/int.h"
+#include "../../../object/type/string.h"
+#include "../../../util/util.h"
+#include "../../../object/type/int.h"
 
 #define \
     fgetcCheckEOF(token) ({ \
@@ -44,6 +44,7 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
     if (c == '\n' || c == '\r') {
         return token_new(TOK_EOL, tokenizer_newString(c == '\n' ? "\n" : "\r"));
     }
+    // TODO: trie for ugly switch
     switch (c) {
         case '|':
             return token_new(TOK_PIPE, tokenizer_newString("|"));
@@ -65,6 +66,10 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
         }
         case '<':
             return token_new(TOK_INPUT, tokenizer_newString("<"));
+        case '(':
+            return token_new(TOK_OPEN_PARENTHESES, tokenizer_newString("("));
+        case ')':
+            return token_new(TOK_CLOSE_PARENTHESES, tokenizer_newString(")"));
         default:
             break;
     }
@@ -106,7 +111,7 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
             value[count++] = (char) c;
         }
         fgetcWithContinuation(TOK_WORD);
-    } while (inSingleQuote || inDoubleQuote || !strchr("|;>< \t\r\n", c));
+    } while (inSingleQuote || inDoubleQuote || !strchr("|;><() \t\r\n", c));
     ungetc(c, input);
     value = realloc(value, (count + 1) * sizeof(char));
     value[count] = '\0';

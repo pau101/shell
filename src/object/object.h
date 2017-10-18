@@ -12,6 +12,8 @@ Object *object_new(const DataType *dataType, void *data);
 
 void *object_get(Object *object, const DataType *dataType);
 
+void *object_getAndDispose(Object *object, const DataType *dataType);
+
 char *object_toString(Object *object);
 
 unsigned int object_hashCode(Object *object);

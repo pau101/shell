@@ -2,15 +2,15 @@
 #define SHELL_TOKEN_H
 
 #include <stdio.h>
-#include "../../object/object.h"
+#include "../../../object/object.h"
 
-#define TOKEN_COUNT 12
+#define TOKEN_COUNT 14
 
 typedef enum tokenType {
     TOK_END,
     TOK_EOL,
-    TOK_PIPE,
     TOK_SEQUENCE,
+    TOK_PIPE,
     TOK_INPUT,
     TOK_INPUT_IO_NUMBER,
     TOK_OUTPUT,
@@ -18,7 +18,9 @@ typedef enum tokenType {
     TOK_OUTPUT_CLOBBER,
     TOK_OUTPUT_IO_NUMBER,
     TOK_IO_NUMBER,
-    TOK_WORD
+    TOK_WORD,
+    TOK_OPEN_PARENTHESES,
+    TOK_CLOSE_PARENTHESES
 } TokenType;
 
 typedef struct token {

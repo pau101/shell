@@ -26,6 +26,10 @@ LinkedList *list_new();
 
 bool list_isEmpty(LinkedList *linkedList);
 
+bool list_isSingular(LinkedList *linkedList);
+
+Object *list_single(LinkedList *linkedList);
+
 Object *list_get(LinkedList *linkedList, int index);
 
 void list_addFirst(LinkedList *linkedList, Object *e);

@@ -6,6 +6,9 @@
 #include "../../object/type/string.h"
 #include "../../object/type/int.h"
 #include "../../util/throwingblock.h"
+#include "tokenizer/token.h"
+#include "tokenizer/tokenzier.h"
+#include "executablebuilder.h"
 
 Parser *parser_new() {
     Parser *parser = calloc(1, sizeof(Parser));
@@ -100,50 +103,135 @@ bool parser_parseRedirection(Parser *parser, FILE *input, ThrowingBlock *tb, Com
     return false;
 }
 
-Command *parser_parseCommand(Parser *parser, FILE *input, ThrowingBlock *tb) {
+ExecutableBuilder *parser_continuePipeline(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
+    Pipeline *pipeline = execbldr_getExecutor(builder, &TYPE_PIPELINE);
+    if (top->executable != NULL) {
+        printf("continue pipe\n");
+        pipeline_add(pipeline, top->executable);
+        top->executable = NULL;
+    }
+    return builder;
+}
+
+ExecutableBuilder *parser_continueSequence(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
+    Sequence *sequence = execbldr_getExecutor(builder, &TYPE_SEQUENCE);
+    if (top->executable != NULL) {
+        printf("continue sequence\n");
+        sequence_add(sequence, top->executable);
+        top->executable = NULL;
+    }
+    return builder;
+}
+
+ExecutableBuilder *parser_newSequence(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top);
+
+ExecutableBuilder *parser_newPipeline(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
+    Pipeline *pipeline = pipeline_new();
+    printf("new pipeline\n");
+    if (builder->executable != NULL) {
+        printf("1 %s\n", builder->executable->executor->dataType->identifier);
+        pipeline_add(pipeline, builder->executable);
+        builder->executable = NULL;
+    }
+    execbldr_dispose(builder);
+    if (top->executable != NULL) {
+        printf("2 %s\n", top->executable->executor->dataType->identifier);
+        pipeline_add(pipeline, top->executable);
+        top->executable = NULL;
+    }
+    return execbldr_new(pipeline_executable(pipeline), parser_continuePipeline, parser_newSequence, parser_continuePipeline);
+}
+
+ExecutableBuilder *parser_newSequence(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
+    Sequence *sequence = sequence_new();
+    printf("new sequence\n");
+    if (builder->executable != NULL) {
+        printf("1 %s\n", builder->executable->executor->dataType->identifier);
+        sequence_add(sequence, builder->executable);
+        builder->executable = NULL;
+    }
+    execbldr_dispose(builder);
+    if (top->executable != NULL) {
+        printf("1 %s\n", top->executable->executor->dataType->identifier);
+        sequence_add(sequence, top->executable);
+        top->executable = NULL;
+    }
+    return execbldr_new(sequence_executable(sequence), parser_newPipeline, parser_continueSequence, parser_continueSequence);
+}
+
+ExecutableBuilder *parser_bldrError(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
+    tb_throw(tb, "syntax error");
+}
+
+ExecutableBuilder *parser_bldrEnd(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
+    if (builder->executable != NULL) {
+        tb_throw(tb, "syntax error");
+    }
+    execbldr_dispose(builder);
+    ExecutableBuilder *bob = execbldr_new(top->executable, parser_bldrError, parser_bldrError, parser_bldrError);
+    top->executable = NULL;
+    return bob;
+}
+
+ExecutableBuilder *parser_parseCommand(Parser *parser, FILE *input, ThrowingBlock *tb) {
     Command *command = command_new();
     int cid = tb_trace(tb, object_new(&TYPE_COMMAND, command));
+    bool isEmpty = true;
     do {
         while (parser_nextToken(parser, input)->type == TOK_WORD) {
+            isEmpty = false;
             command_addWord(command, cloneString(object_get(parser->token->value, &TYPE_STRING)));
         }
     } while (parser_parseRedirection(parser, input, tb, command));
     tb_untrace(tb, cid);
-    return command;
-}
-
-Pipeline *parser_parsePipeline(Parser *parser, FILE *input, ThrowingBlock *tb) {
-    Pipeline *pipeline = pipeline_new();
-    int pid = tb_trace(tb, object_new(&TYPE_PIPELINE, pipeline));
-    do {
-        pipeline_add(pipeline, command_executable(parser_parseCommand(parser, input, tb)));
-    } while (parser->token->type == TOK_PIPE);
-    tb_untrace(tb, pid);
-    return pipeline;
+    if (isEmpty) {
+        command_dispose(command);
+        return execbldr_new(NULL, parser_bldrError, parser_bldrError, parser_bldrError);
+    }
+    return execbldr_new(command_executable(command), parser_newPipeline, parser_newSequence, parser_bldrError);
 }
 
 Executable *parser_parse(Parser *parser, FILE *input, FILE *output) {
     ThrowingBlock *tb = tb_new();
-    Executable *executable;
+    LinkedList *stack = list_new();
+    list_addLast(stack, object_new(&TYPE_EXECUTABLE_BUILDER, execbldr_new(NULL, parser_newPipeline, parser_newSequence, parser_bldrEnd)));
+    Executable *executable = NULL;
     if (tb_try(tb)) {
-        Sequence *sequence = sequence_new();
-        int sid = tb_trace(tb, object_new(&TYPE_SEQUENCE, sequence));
         do {
-            sequence_add(sequence, pipeline_executable(parser_parsePipeline(parser, input, tb)));
-        } while (parser->token->type == TOK_SEQUENCE);
-        if (parser_isInLine(parser)) {
+            ExecutableBuilder *command = parser_parseCommand(parser, input, tb);
+            ExecutableBuilder *(*begin)(ExecutableBuilder *, ThrowingBlock *, ExecutableBuilder *);
+            TokenType type = parser->token->type;
+            if (type == TOK_PIPE) {
+                begin = execbldr_beginPipeline;
+            } else if (type == TOK_SEQUENCE) {
+                begin = execbldr_beginSequence;
+            } else {
+                begin = execbldr_beginEnd;
+            }
+            ExecutableBuilder *builder = object_getAndDispose(list_removeLast(stack), &TYPE_EXECUTABLE_BUILDER);
+            int cid = tb_trace(tb, object_new(&TYPE_EXECUTABLE_BUILDER, command));
+            int bid = tb_trace(tb, object_new(&TYPE_EXECUTABLE_BUILDER, builder));
+            ExecutableBuilder *top = begin(builder, tb, command);
+            tb_untrace(tb, cid);
+            tb_untrace(tb, bid);
+            execbldr_dispose(command);
+            list_addLast(stack, object_new(&TYPE_EXECUTABLE_BUILDER, top));
+        } while (parser_isInLine(parser));
+        if (list_isSingular(stack)) {
+            ExecutableBuilder *builder = object_get(list_single(stack), &TYPE_EXECUTABLE_BUILDER);
+            executable = builder->executable;
+            builder->executable = NULL;
+        } else {
             tb_throw(tb, "syntax error");
         }
-        tb_untrace(tb, sid);
-        executable = sequence_executable(sequence);
     } else {
-        executable = NULL;
         fprintf(output, "%s\n", tb->errorMessage);
         while (parser_isInLine(parser)) {
             parser_nextToken(parser, input);
         }
     }
     tb_dispose(tb);
+    list_dispose(stack);
     return executable;
 }
 

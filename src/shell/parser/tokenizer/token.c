@@ -1,12 +1,12 @@
 #include <stdlib.h>
 #include "token.h"
-#include "../../util/preconditions.h"
+#include "../../../util/preconditions.h"
 
 static const char *TOKEN_NAMES[TOKEN_COUNT] = {
         "END",
         "EOL",
-        "PIPE",
         "SEQUENCE",
+        "PIPE",
         "INPUT",
         "INPUT_IO_NUMBER",
         "OUTPUT",
@@ -14,7 +14,9 @@ static const char *TOKEN_NAMES[TOKEN_COUNT] = {
         "OUTPUT_CLOBBER",
         "OUTPUT_IO_NUMBER",
         "IO_NUMBER",
-        "WORD"
+        "WORD",
+        "OPEN_PARENTHESES",
+        "TOK_CLOSE_PARENTHESES"
 };
 
 Token *token_new(TokenType type, Object *value) {
