@@ -11,6 +11,8 @@ typedef struct shell Shell;
 
 typedef struct executable Executable;
 
+typedef struct ioStreams IOStreams;
+
 typedef struct pipeline {
     LinkedList *executables;
 } Pipeline;
@@ -21,7 +23,7 @@ Executable *pipeline_executable(Pipeline *pipeline, char *source);
 
 void pipeline_add(Pipeline *pipeline, Executable *executable);
 
-int pipeline_exec(Shell *shell, Pipeline *pipeline);
+int pipeline_exec(Pipeline *pipeline, Shell *shell, IOStreams *streams);
 
 char *pipeline_toString(void *o);
 

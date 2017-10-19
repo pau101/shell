@@ -10,6 +10,8 @@ typedef struct shell Shell;
 
 typedef struct executable Executable;
 
+typedef struct ioStreams IOStreams;
+
 typedef struct command {
     LinkedList *words;
     LinkedList *redirects;
@@ -23,7 +25,7 @@ void command_addWord(Command *command, char *word);
 
 void command_addRedirect(Command *command, Redirect *redirect);
 
-int command_exec(Shell *shell, Command *command);
+int command_exec(Command *command, Shell *shell, IOStreams *streams);
 
 char *command_toString(void *o);
 

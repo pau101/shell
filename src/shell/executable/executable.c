@@ -5,7 +5,7 @@
 #include "../../object/type/string.h"
 #include "../mode/shellmode.h"
 
-Executable *executable_new(Object *executor, char *source, int (*execute)(Shell *shell, Object *e)) {
+Executable *executable_new(Object *executor, char *source, int (*execute)(Object *e, Shell *shell, IOStreams *streams)) {
     requireNonNull(executor);
     requireNonNull(source);
     requireNonNull(execute);
@@ -16,9 +16,9 @@ Executable *executable_new(Object *executor, char *source, int (*execute)(Shell 
     return executable;
 }
 
-int executable_execute(Shell *shell, Executable *executable) {
+int executable_execute(Executable *executable, Shell *shell, IOStreams *streams) {
     requireNonNull(executable);
-    return executable->execute(shell, executable->executor);
+    return executable->execute(executable->executor, shell, streams);
 }
 
 char *executable_toString(void *o) {

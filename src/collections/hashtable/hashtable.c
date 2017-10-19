@@ -19,11 +19,11 @@ void entry_dispose(HTEntry *entry) {
     if (entry == NULL) {
         return;
     }
+    for (HTEntry *e = entry->next; e != NULL; e = e->next) {
+        entry_dispose(e);
+    }
     object_dispose(entry->key);
     object_dispose(entry->value);
-    for (HTEntry *e = entry->next; e != NULL; e = e->next) {
-        entry_dispose(entry);
-    }
     free(entry);
 }
 

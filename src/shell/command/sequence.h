@@ -9,6 +9,8 @@ typedef struct shell Shell;
 
 typedef struct executable Executable;
 
+typedef struct ioStreams IOStreams;
+
 typedef struct sequence {
     LinkedList *executables;
 } Sequence;
@@ -19,7 +21,7 @@ Executable *sequence_executable(Sequence *sequence, char *source);
 
 void sequence_add(Sequence *sequence, Executable *executable);
 
-int sequence_exec(Shell *shell, Sequence *sequence);
+int sequence_exec(Sequence *sequence, Shell *shell, IOStreams *streams);
 
 char *sequence_toString(void *o);
 

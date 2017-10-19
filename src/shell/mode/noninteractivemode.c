@@ -41,6 +41,5 @@ void nishmode_dispose(void *data) {
     if (data == NULL) {
         return;
     }
-    //
     free(data);
 }

@@ -14,8 +14,8 @@ Pipeline *pipeline_new() {
     return pipeline;
 }
 
-int pipeline_exec_(Shell *shell, Object *e) {
-    return pipeline_exec(shell, object_get(e, &TYPE_PIPELINE));
+int pipeline_exec_(Object *e, Shell *shell, IOStreams *streams) {
+    return pipeline_exec(object_get(e, &TYPE_PIPELINE), shell, streams);
 }
 
 Executable *pipeline_executable(Pipeline *pipeline, char *source) {
@@ -29,7 +29,7 @@ void pipeline_add(Pipeline *pipeline, Executable *executable) {
     list_addLast(pipeline->executables, object_new(&TYPE_EXECUTABLE, executable));
 }
 
-void pipeline_pipe(Shell *shell, int fd[2], Executable *executable, bool doRead, bool doWrite) {
+void pipeline_pipe(Shell *shell, IOStreams *streams, int fd[2], Executable *executable, bool doRead, bool doWrite) {
     if (pipe(fd) < 0) {
         pExit("pipe");
     }
@@ -53,14 +53,14 @@ void pipeline_pipe(Shell *shell, int fd[2], Executable *executable, bool doRead,
             }
             close(fd[READ]);
         }
-        exit(executable_execute(shell, executable));
+        exit(executable_execute(executable, shell, streams));
     }
 }
 
-int pipeline_exec(Shell *shell, Pipeline *pipeline) {
+int pipeline_exec(Pipeline *pipeline, Shell *shell, IOStreams *streams) {
     requireNonNull(pipeline);
     if (pipeline->executables->size == 1) {
-        return executable_execute(shell, object_get(list_peekFirst(pipeline->executables), &TYPE_EXECUTABLE));
+        return executable_execute(object_get(list_peekFirst(pipeline->executables), &TYPE_EXECUTABLE), shell, streams);
     }
     pid_t cpid = fork();
     if (cpid < 0) {
@@ -71,7 +71,7 @@ int pipeline_exec(Shell *shell, Pipeline *pipeline) {
         ListIterator *itr = list_listIterator(pipeline->executables, pipeline->executables->size);
         while (listiterator_hasPrevious(itr)) {
             Executable *executable = object_get(listiterator_previous(itr), &TYPE_EXECUTABLE);
-            pipeline_pipe(shell, fd, executable, listiterator_hasPrevious(itr), listiterator_hasNext(itr));
+            pipeline_pipe(shell, streams, fd, executable, listiterator_hasPrevious(itr), listiterator_hasNext(itr));
         }
         listiterator_dispose(itr);
         exit(EXIT_SUCCESS);

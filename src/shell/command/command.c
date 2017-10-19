@@ -13,8 +13,8 @@ Command *command_new() {
     return command;
 }
 
-int command_exec_(Shell *shell, Object *e) {
-    return command_exec(shell, object_get(e, &TYPE_COMMAND));
+int command_exec_(Object *e, Shell *shell, IOStreams *streams) {
+    return command_exec(object_get(e, &TYPE_COMMAND), shell, streams);
 }
 
 Executable *command_executable(Command *command, char *source) {
@@ -34,35 +34,39 @@ void command_addRedirect(Command *command, Redirect *redirect) {
     list_addLast(command->redirects, object_new(&TYPE_REDIRECT, redirect));
 }
 
-int command_exec(Shell *shell, Command *command) {
+int command_exec(Command *command, Shell *shell, IOStreams *streams) {
     requireNonNull(command);
-    shell_getBuiltin(shell, object_get(list_peekFirst(command->words), &TYPE_STRING));
-    char **words = calloc((size_t) command->words->size + 1, sizeof(char *));
-    Iterator *wIter = list_iterator(command->words);
-    for (int i = 0; iterator_hasNext(wIter); i++) {
-        words[i] = object_get(iterator_next(wIter), &TYPE_STRING);
-    }
-    iterator_dispose(wIter);
-    pid_t cpid = fork();
-    if (cpid < 0) {
-        pExit("fork");
-    }
-    if (cpid == 0) {
-        Iterator *rIter = list_iterator(command->redirects);
-        while (iterator_hasNext(rIter)) {
-            redirect_perform(object_get(iterator_next(wIter), &TYPE_REDIRECT));
+    Builtin builtin = shell_getBuiltin(shell, object_get(list_peekFirst(command->words), &TYPE_STRING));
+    if (builtin == NULL) {
+        char **words = calloc((size_t) command->words->size + 1, sizeof(char *));
+        Iterator *wIter = list_iterator(command->words);
+        for (int i = 0; iterator_hasNext(wIter); i++) {
+            words[i] = object_get(iterator_next(wIter), &TYPE_STRING);
         }
-        iterator_dispose(rIter);
-        execvp(words[0], words);
-        pExit(words[0]);
+        iterator_dispose(wIter);
+        pid_t cpid = fork();
+        if (cpid < 0) {
+            pExit("fork");
+        }
+        if (cpid == 0) {
+            // TODO: fix redirects to work on all executables
+            Iterator *rIter = list_iterator(command->redirects);
+            while (iterator_hasNext(rIter)) {
+                redirect_perform(object_get(iterator_next(wIter), &TYPE_REDIRECT));
+            }
+            iterator_dispose(rIter);
+            execvp(words[0], words);
+            pExit(words[0]);
+        }
+        int status;
+        pid_t w = waitpid(cpid, &status, 0);
+        if (w == -1) {
+            pExit("waitpid");
+        }
+        free(words);
+        return status;
     }
-    int status;
-    pid_t w = waitpid(cpid, &status, 0);
-    if (w == -1) {
-        pExit("waitpid");
-    }
-    free(words);
-    return status;
+    return builtin(shell, streams, command->words);
 }
 
 char *command_toString(void *o) {

@@ -6,37 +6,15 @@
 #define RUN_COMMANDS_FILE ".msshrc"
 #define HISTORY_FILE ".msshrc_history"
 
-typedef struct interactiveData {
-    LinkedList *history;
-} InteractiveShellData;
-
-InteractiveShellData *ishdata_new() {
-    InteractiveShellData *ishdata = calloc(1, sizeof(InteractiveShellData));
-    ishdata->history = list_new();
-    return ishdata;
-}
-
-void ishdata_dispose(InteractiveShellData *ishdata) {
-    if (ishdata == NULL) {
-        return;
-    }
-    list_dispose(ishdata->history);
-    free(ishdata);
-}
-
 ShellMode *ishmode_new() {
     return shmode_new(
-            ishdata_new(),
+            NULL,
             ishmode_dispose,
             ishmode_onInit,
             ishmode_onPreParse,
             ishmode_onPostParse,
             ishmode_onExit
     );
-}
-
-InteractiveShellData *ishmode_data(void **data) {
-    return *data;
 }
 
 void ishmode_onInit(void **data, Shell *shell, IOStreams *streams) {
@@ -60,7 +38,7 @@ void ishmode_onInit(void **data, Shell *shell, IOStreams *streams) {
     }
     FILE *hist = fopen(HISTORY_FILE, "r");
     if (hist != NULL) {
-        LinkedList *history = ishmode_data(data)->history;
+        LinkedList *history = shell->history;
         parser_reset(shell->parser);
         do {
             Executable *executable = parser_parse(shell->parser, hist, streams->output);
@@ -94,7 +72,7 @@ void ishmode_onPostParse(void **data, Shell *shell, IOStreams *streams, Executab
     requireNonNull(streams);
     if (executable != NULL) {
         int histSize = shell_getIntVariable(shell, HIST_SIZE);
-        LinkedList *history = ishmode_data(data)->history;
+        LinkedList *history = shell->history;
         if (histSize != 0) {
             list_addLast(history, object_new(&TYPE_EXECUTABLE, executable_clone(executable)));
         }
@@ -113,15 +91,23 @@ void ishmode_onExit(void **data, Shell *shell, IOStreams *streams) {
     requireNonNull(streams);
     FILE *hist = fopen(HISTORY_FILE, "w");
     if (hist != NULL) {
-        Iterator *itr = list_iterator(ishmode_data(data)->history);
-        while (iterator_hasNext(itr)) {
-            Executable *exec = object_get(iterator_next(itr), &TYPE_EXECUTABLE);
+        int histFileSize = shell_getIntVariable(shell, HIST_FILE_SIZE);
+        int start = shell->history->size - histFileSize;
+        ListIterator *itr = list_listIterator(shell->history, start < 0 ? 0 : start);
+        while (listiterator_hasNext(itr)) {
+            Executable *exec = object_get(listiterator_next(itr), &TYPE_EXECUTABLE);
             fprintf(hist, "%s\n", exec->source);
         }
-        iterator_dispose(itr);
+        listiterator_dispose(itr);
+        if (fclose(hist) == EOF) {
+            pExit("fclose");
+        }
     }
 }
 
 void ishmode_dispose(void *data) {
-    ishdata_dispose(data);
+    if (data == NULL) {
+        return;
+    }
+    free(data);
 }

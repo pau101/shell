@@ -6,15 +6,17 @@
 
 typedef struct shell Shell;
 
+typedef struct ioStreams IOStreams;
+
 typedef struct executable {
     Object *executor;
     char *source;
-    int (*execute)(Shell *shell, Object *executor);
+    int (*execute)(Object *executor, Shell *shell, IOStreams *streams);
 } Executable;
 
-Executable *executable_new(Object *executor, char *source, int (*execute)(Shell *shell, Object *e));
+Executable *executable_new(Object *executor, char *source, int (*execute)(Object *e, Shell *shell, IOStreams *streams));
 
-int executable_execute(Shell *shell, Executable *executable);
+int executable_execute(Executable *executable, Shell *shell, IOStreams *streams);
 
 char *executable_toString(void *o);
 
