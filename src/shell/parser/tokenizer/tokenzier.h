@@ -3,8 +3,7 @@
 
 #include <stdbool.h>
 #include "token.h"
-
-typedef struct shell Shell;
+#include "../../shtypes.h"
 
 typedef struct tokenizer {
     int readCharCount;

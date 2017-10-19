@@ -7,15 +7,9 @@
 #include "command.h"
 #include "../executable/executable.h"
 
-typedef struct shell Shell;
-
-typedef struct executable Executable;
-
-typedef struct ioStreams IOStreams;
-
-typedef struct pipeline {
+struct pipeline {
     LinkedList *executables;
-} Pipeline;
+};
 
 Pipeline *pipeline_new();
 

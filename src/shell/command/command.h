@@ -5,17 +5,12 @@
 #include "redirect/redirect.h"
 #include "../../collections/linkedlist/linkedlist.h"
 #include "../executable/executable.h"
+#include "../shtypes.h"
 
-typedef struct shell Shell;
-
-typedef struct executable Executable;
-
-typedef struct ioStreams IOStreams;
-
-typedef struct command {
+struct command {
     LinkedList *words;
     LinkedList *redirects;
-} Command;
+};
 
 Command *command_new();
 

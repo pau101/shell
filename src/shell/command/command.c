@@ -5,6 +5,7 @@
 #include "../../util/preconditions.h"
 #include "../../object/type/string.h"
 #include "../../object/type/reference.h"
+#include "../shell.h"
 
 Command *command_new() {
     Command *command = calloc(1, sizeof(Command));

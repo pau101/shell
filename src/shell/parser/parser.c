@@ -173,13 +173,11 @@ ExecutableBuilder *parser_parseCommand(Parser *parser, Shell *shell, FILE *input
     Command *command = command_new();
     int cid = tb_trace(tb, object_new(&TYPE_COMMAND, command));
     bool isEmpty = true;
-    bool isFirst = true;
     do {
         while (parser_nextToken(parser, shell, input)->type == TOK_WORD) {
             char *word = object_get(parser->token->value, &TYPE_STRING);
             bool isAlias = false;
-            if (isFirst) {
-                isFirst = false;
+            if (isEmpty) {
                 char *alias = shell_getAlias(shell, word);
                 if (alias != NULL) {
                     isAlias = true;

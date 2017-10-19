@@ -7,20 +7,16 @@
 #include "mode/shellmode.h"
 #include "../util/iostreams.h"
 
-typedef struct shellMode ShellMode;
-
-typedef struct parser Parser;
-
 typedef int (*Builtin)(Shell *, IOStreams *streams, LinkedList *);
 
-typedef struct shell {
+struct shell {
     Parser *parser;
     Hashtable *aliases;
     Hashtable *variables;
     Hashtable *builtins;
     LinkedList *history;
     bool isRunning;
-} Shell;
+};
 
 Shell *shell_new();
 

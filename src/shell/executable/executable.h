@@ -2,17 +2,14 @@
 #define SHELL_EXECUTABLE_H
 
 #include "../../object/object.h"
-#include "../shell.h"
+#include "../shtypes.h"
+#include "../../util/iostreams.h"
 
-typedef struct shell Shell;
-
-typedef struct ioStreams IOStreams;
-
-typedef struct executable {
+struct executable {
     Object *executor;
     char *source;
     int (*execute)(Object *executor, Shell *shell, IOStreams *streams);
-} Executable;
+};
 
 Executable *executable_new(Object *executor, char *source, int (*execute)(Object *e, Shell *shell, IOStreams *streams));
 

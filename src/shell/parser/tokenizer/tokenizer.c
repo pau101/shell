@@ -7,6 +7,7 @@
 #include "../../../object/type/int.h"
 #include "../../../util/preconditions.h"
 #include "../../command/command.h"
+#include "../../shell.h"
 
 Tokenizer *tokenizer_new() {
     Tokenizer *tokenizer = calloc(1, sizeof(Tokenizer));

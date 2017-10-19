@@ -11,7 +11,7 @@ char *reference_toString(void *o) {
 }
 
 unsigned int reference_hashCode(void *o) {
-    return (unsigned int) (uintptr_t) o;
+    return (unsigned int) o;
 }
 
 int reference_compareTo(void *o1, void *o2) {

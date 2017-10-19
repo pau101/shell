@@ -5,15 +5,9 @@
 #include "pipeline.h"
 #include "../executable/executable.h"
 
-typedef struct shell Shell;
-
-typedef struct executable Executable;
-
-typedef struct ioStreams IOStreams;
-
-typedef struct sequence {
+struct sequence {
     LinkedList *executables;
-} Sequence;
+};
 
 Sequence *sequence_new();
 

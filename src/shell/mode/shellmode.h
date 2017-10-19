@@ -4,11 +4,7 @@
 #include "../shell.h"
 #include "../../util/iostreams.h"
 
-typedef struct shell Shell;
-
-typedef struct executable Executable;
-
-typedef struct shellMode {
+struct shellMode {
     void *data;
 
     void (*dispose)(void *data);
@@ -20,7 +16,7 @@ typedef struct shellMode {
     void (*onPostParse)(void **data, Shell *shell, IOStreams *streams, Executable *executable);
 
     void (*onExit)(void **data, Shell *shell, IOStreams *streams);
-} ShellMode;
+};
 
 ShellMode *shmode_new(void *data, void (*dispose)(void *d), void (*onInit)(void **d, Shell *shell, IOStreams *streams),
                       void (*onPreParse)(void **d, Shell *shell, IOStreams *streams),
