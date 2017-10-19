@@ -261,7 +261,7 @@ int shell_execute(Shell *shell, IOStreams *streams, ShellMode *mode) {
     shell->isRunning = true;
     do {
         shmode_onPreParse(mode, shell, streams);
-        Executable *executable = parser_parse(shell->parser, streams->input, streams->output);
+        Executable *executable = parser_parse(shell->parser, shell, streams->input, streams->output);
         shmode_onPostParse(mode, shell, streams, executable);
         if (executable != NULL) {
             status = executable_execute(executable, shell, streams);

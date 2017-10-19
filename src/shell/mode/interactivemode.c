@@ -41,7 +41,7 @@ void ishmode_onInit(void **data, Shell *shell, IOStreams *streams) {
         LinkedList *history = shell->history;
         parser_reset(shell->parser);
         do {
-            Executable *executable = parser_parse(shell->parser, hist, streams->output);
+            Executable *executable = parser_parse(shell->parser, shell, hist, streams->output);
             if (executable != NULL) {
                 list_addLast(history, object_new(&TYPE_EXECUTABLE, executable));
             }

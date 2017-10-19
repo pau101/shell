@@ -4,15 +4,18 @@
 #include <stdbool.h>
 #include "token.h"
 
+typedef struct shell Shell;
+
 typedef struct tokenizer {
     int readCharCount;
+    int readCharSkip;
     size_t readCharsSize;
     char *readChars;
 } Tokenizer;
 
 Tokenizer *tokenizer_new();
 
-Token *tokenizer_next(Tokenizer *tokenizer, FILE *input, Token *lastToken);
+Token *tokenizer_next(Tokenizer *tokenizer, Shell *shell, FILE *input, Token *lastToken);
 
 void tokenizer_beginRead(Tokenizer *tokenizer);
 

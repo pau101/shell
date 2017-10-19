@@ -6,6 +6,7 @@
 #include "../../../util/util.h"
 #include "../../../object/type/int.h"
 #include "../../../util/preconditions.h"
+#include "../../command/command.h"
 
 Tokenizer *tokenizer_new() {
     Tokenizer *tokenizer = calloc(1, sizeof(Tokenizer));
@@ -20,11 +21,15 @@ Object *tokenizer_newString(char *in) {
 }
 
 void tokenizer_appendRead(Tokenizer *tokenizer, char c) {
-    if (tokenizer->readCharCount >= tokenizer->readCharsSize) {
-        tokenizer->readCharsSize = tokenizer->readCharsSize * 2 + 1;
-        tokenizer->readChars = realloc(tokenizer->readChars, tokenizer->readCharsSize * sizeof(char));
+    if (tokenizer->readCharSkip > 0) {
+        tokenizer->readCharSkip--;
+    } else {
+        if (tokenizer->readCharCount >= tokenizer->readCharsSize) {
+            tokenizer->readCharsSize = tokenizer->readCharsSize * 2 + 1;
+            tokenizer->readChars = realloc(tokenizer->readChars, tokenizer->readCharsSize * sizeof(char));
+        }
+        tokenizer->readChars[tokenizer->readCharCount++] = c;
     }
-    tokenizer->readChars[tokenizer->readCharCount++] = c;
 }
 
 void tokenizer_discard(Tokenizer *tokenizer) {
@@ -36,9 +41,11 @@ void tokenizer_discard(Tokenizer *tokenizer) {
 }
 
 void tokenizer_unread(Tokenizer *tokenizer, FILE *input, int *c, int co) {
-    ungetc(*c, input);
+    if (tokenizer->readCharSkip == 0) {
+        ungetc(*c, input);
+        tokenizer_discard(tokenizer);
+    }
     *c = co;
-    tokenizer_discard(tokenizer);
 }
 
 bool tokenizer_read(Tokenizer *tokenizer, FILE *input, int *c) {
@@ -76,7 +83,7 @@ Token *tokenizer_checkEOL(int c) {
     return NULL;
 }
 
-Token *tokenizer_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
+Token *tokenizer_next(Tokenizer *tokenizer, Shell *shell, FILE *input, Token *lastToken) {
     requireNonNull(tokenizer);
     int c;
     do {
@@ -157,6 +164,32 @@ Token *tokenizer_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
             } else if (c == '"') {
                 inDoubleQuote = !inDoubleQuote;
                 append = false;
+            } else if (c == '!') {
+                int co = c;
+                if (tokenizer_get(tokenizer, input, &c)) {
+                    break;
+                }
+                append = false;
+                if (c == '!') {
+                    LinkedList *history = shell->history;
+                    if (!list_isEmpty(history)) {
+                        char *lc = ((Executable *) object_get(list_peekLast(history), &TYPE_EXECUTABLE))->source;
+                        for (int i = (int) strlen(lc) - 1; i >= 0; i--) {
+                            ungetc(lc[i], input);
+                            tokenizer->readCharSkip++;
+                        }
+                    }
+                } else {
+                    tokenizer_unread(tokenizer, input, &c, co);
+                    int num = 0;
+                    if (fscanf(input, "%d", &num) && num >= 0 && num < shell->history->size) {
+                        char *lc = ((Executable *) object_get(list_get(shell->history, num), &TYPE_EXECUTABLE))->source;
+                        for (int i = (int) strlen(lc) - 1; i >= 0; i--) {
+                            ungetc(lc[i], input);
+                            tokenizer->readCharSkip++;
+                        }
+                    }
+                }
             }
         }
         if (append) {
@@ -190,6 +223,7 @@ Token *tokenizer_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
 
 void tokenizer_beginRead(Tokenizer *tokenizer) {
     if (tokenizer->readCharCount > 0) {
+        tokenizer->readCharSkip = 0;
         tokenizer->readCharCount = 0;
         tokenizer->readCharsSize = 8;
         tokenizer->readChars = realloc(tokenizer->readChars, tokenizer->readCharsSize * sizeof(char));

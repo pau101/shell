@@ -39,18 +39,18 @@ bool parser_isAtLine(Parser *parser) {
     return parser->token->type == TOK_EOL;
 }
 
-Token *parser_nextToken(Parser *parser, FILE *input) {
-    Token *token = tokenizer_next(parser->tokenizer, input, parser->token);
+Token *parser_nextToken(Parser *parser, Shell *shell, FILE *input) {
+    Token *token = tokenizer_next(parser->tokenizer, shell, input, parser->token);
     token_dispose(parser->token);
     parser->token = token;
     return token;
 }
 
-bool parser_parseIORedirection(Parser *parser, FILE *input, ThrowingBlock *tb, Command *command, int fdin, int fdout) {
+bool parser_parseIORedirection(Parser *parser, Shell *shell, FILE *input, ThrowingBlock *tb, Command *command, int fdin, int fdout) {
     int outputType = 0;
     switch (parser->token->type) {
         case TOK_INPUT_IO_NUMBER: {
-            Token *token = parser_nextToken(parser, input);
+            Token *token = parser_nextToken(parser, shell, input);
             if (token->type == TOK_IO_NUMBER) {
                 int fd = *(int *) object_get(token->value, &TYPE_INT);
                 command_addRedirect(command, redirect_new(fdin, fdopener_handle(fd, newString("r"))));
@@ -60,7 +60,7 @@ bool parser_parseIORedirection(Parser *parser, FILE *input, ThrowingBlock *tb, C
             return true;
         }
         case TOK_INPUT: {
-            Token *token = parser_nextToken(parser, input);
+            Token *token = parser_nextToken(parser, shell, input);
             if (token->type == TOK_WORD) {
                 char *word = (char *) object_get(token->value, &TYPE_STRING);
                 command_addRedirect(command,
@@ -71,7 +71,7 @@ bool parser_parseIORedirection(Parser *parser, FILE *input, ThrowingBlock *tb, C
             return true;
         }
         case TOK_OUTPUT_IO_NUMBER: {
-            Token *token = parser_nextToken(parser, input);
+            Token *token = parser_nextToken(parser, shell, input);
             if (token->type == TOK_IO_NUMBER) {
                 int fd = *(int *) object_get(token->value, &TYPE_INT);
                 command_addRedirect(command, redirect_new(fdout, fdopener_handle(fd, newString("w"))));
@@ -85,7 +85,7 @@ bool parser_parseIORedirection(Parser *parser, FILE *input, ThrowingBlock *tb, C
         case TOK_OUTPUT_APPEND:
             outputType++;
         case TOK_OUTPUT: {
-            Token *token = parser_nextToken(parser, input);
+            Token *token = parser_nextToken(parser, shell, input);
             if (token->type == TOK_WORD) {
                 char *word = (char *) object_get(token->value, &TYPE_STRING);
                 char *mode = outputType == 1 ? "a" : "w";
@@ -102,14 +102,14 @@ bool parser_parseIORedirection(Parser *parser, FILE *input, ThrowingBlock *tb, C
     return false;
 }
 
-bool parser_parseRedirection(Parser *parser, FILE *input, ThrowingBlock *tb, Command *command) {
-    if (parser_parseIORedirection(parser, input, tb, command, STDIN_FILENO, STDOUT_FILENO)) {
+bool parser_parseRedirection(Parser *parser, Shell *shell, FILE *input, ThrowingBlock *tb, Command *command) {
+    if (parser_parseIORedirection(parser, shell, input, tb, command, STDIN_FILENO, STDOUT_FILENO)) {
         return true;
     }
     if (parser->token->type == TOK_IO_NUMBER) {
         int num = *(int *) object_get(parser->token->value, &TYPE_INT);
-        parser_nextToken(parser, input);
-        if (parser_parseIORedirection(parser, input, tb, command, num, num)) {
+        parser_nextToken(parser, shell, input);
+        if (parser_parseIORedirection(parser, shell, input, tb, command, num, num)) {
             return true;
         }
         tb_throw(tb, "syntax error");
@@ -169,16 +169,32 @@ ExecutableBuilder *parser_bldrError(ExecutableBuilder *builder, ThrowingBlock *t
     tb_throw(tb, "syntax error");
 }
 
-ExecutableBuilder *parser_parseCommand(Parser *parser, FILE *input, ThrowingBlock *tb) {
+ExecutableBuilder *parser_parseCommand(Parser *parser, Shell *shell, FILE *input, ThrowingBlock *tb) {
     Command *command = command_new();
     int cid = tb_trace(tb, object_new(&TYPE_COMMAND, command));
     bool isEmpty = true;
+    bool isFirst = true;
     do {
-        while (parser_nextToken(parser, input)->type == TOK_WORD) {
-            isEmpty = false;
-            command_addWord(command, newString(object_get(parser->token->value, &TYPE_STRING)));
+        while (parser_nextToken(parser, shell, input)->type == TOK_WORD) {
+            char *word = object_get(parser->token->value, &TYPE_STRING);
+            bool isAlias = false;
+            if (isFirst) {
+                isFirst = false;
+                char *alias = shell_getAlias(shell, word);
+                if (alias != NULL) {
+                    isAlias = true;
+                    for (int i = (int) strlen(alias) - 1; i >= 0; i--) {
+                        ungetc(alias[i], input);
+                        parser->tokenizer->readCharSkip++;
+                    }
+                }
+            }
+            if (!isAlias) {
+                isEmpty = false;
+                command_addWord(command, newString(word));
+            }
         }
-    } while (parser_parseRedirection(parser, input, tb, command));
+    } while (parser_parseRedirection(parser, shell, input, tb, command));
     tb_untrace(tb, cid);
     if (isEmpty) {
         command_dispose(command);
@@ -210,7 +226,7 @@ void parser_merge(ThrowingBlock *tb, LinkedList *postfix, TokenType type) {
     list_addLast(postfix, object_new(&TYPE_EXECUTABLE_BUILDER, top));
 }
 
-Executable *parser_parse(Parser *parser, FILE *input, FILE *output) {
+Executable *parser_parse(Parser *parser, Shell *shell, FILE *input, FILE *output) {
     requireNonNull(parser);
     requireNonNull(input);
     requireNonNull(output);
@@ -221,7 +237,7 @@ Executable *parser_parse(Parser *parser, FILE *input, FILE *output) {
     if (tb_try(tb)) {
         tokenizer_beginRead(parser->tokenizer);
         do {
-            ExecutableBuilder *command = parser_parseCommand(parser, input, tb);
+            ExecutableBuilder *command = parser_parseCommand(parser, shell, input, tb);
             if (command != NULL) {
                 list_addLast(builders, object_new(&TYPE_EXECUTABLE_BUILDER, command));
             }
@@ -277,7 +293,7 @@ Executable *parser_parse(Parser *parser, FILE *input, FILE *output) {
     } else {
         fprintf(output, "%s\n", tb->errorMessage);
         while (parser_isInLine(parser)) {
-            parser_nextToken(parser, input);
+            parser_nextToken(parser, shell, input);
         }
     }
     tb_dispose(tb);
