@@ -21,6 +21,8 @@ void ishmode_onPreParse(void **data, Shell *shell, IOStreams *streams);
 
 void ishmode_onPostParse(void **data, Shell *shell, IOStreams *streams, Executable *executable);
 
+void ishmode_onExit(void **data, Shell *shell, IOStreams *streams);
+
 void ishmode_dispose(void *data);
 
 #endif //SHELL_INTERACTIVEMODE_H

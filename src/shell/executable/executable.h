@@ -2,15 +2,19 @@
 #define SHELL_EXECUTABLE_H
 
 #include "../../object/object.h"
+#include "../shell.h"
+
+typedef struct shell Shell;
 
 typedef struct executable {
     Object *executor;
-    int (*execute)(Object *data);
+    char *source;
+    int (*execute)(Shell *shell, Object *executor);
 } Executable;
 
-Executable *executable_new(Object *executor, int (*execute)(Object *e));
+Executable *executable_new(Object *executor, char *source, int (*execute)(Shell *shell, Object *e));
 
-int executable_execute(Executable *executable);
+int executable_execute(Shell *shell, Executable *executable);
 
 char *executable_toString(void *o);
 

@@ -5,6 +5,10 @@
 #include "tokenizer/tokenzier.h"
 #include "tokenizer/token.h"
 
+typedef struct shell Shell;
+
+typedef struct executable Executable;
+
 typedef struct parser {
     Tokenizer *tokenizer;
     Token *token;

@@ -8,38 +8,64 @@
 #include "../../../util/preconditions.h"
 
 Tokenizer *tokenizer_new() {
-    return calloc(1, sizeof(Tokenizer));
+    Tokenizer *tokenizer = calloc(1, sizeof(Tokenizer));
+    tokenizer->readCharCount = 0;
+    tokenizer->readCharsSize = 8;
+    tokenizer->readChars = calloc(tokenizer->readCharsSize, sizeof(char));
+    return tokenizer;
 }
 
 Object *tokenizer_newString(char *in) {
     return object_new(&TYPE_STRING, newString(in));
 }
 
-bool tokenizer_read(FILE *input, int *c) {
+void tokenizer_appendRead(Tokenizer *tokenizer, char c) {
+    if (tokenizer->readCharCount >= tokenizer->readCharsSize) {
+        tokenizer->readCharsSize = tokenizer->readCharsSize * 2 + 1;
+        tokenizer->readChars = realloc(tokenizer->readChars, tokenizer->readCharsSize * sizeof(char));
+    }
+    tokenizer->readChars[tokenizer->readCharCount++] = c;
+}
+
+void tokenizer_discard(Tokenizer *tokenizer) {
+    if (tokenizer->readCharCount <= 0) {
+        errExit("illegal state");
+    } else {
+        tokenizer->readCharCount--;
+    }
+}
+
+void tokenizer_unread(Tokenizer *tokenizer, FILE *input, int *c, int co) {
+    ungetc(*c, input);
+    *c = co;
+    tokenizer_discard(tokenizer);
+}
+
+bool tokenizer_read(Tokenizer *tokenizer, FILE *input, int *c) {
     if ((*c = fgetc(input)) == EOF) {
         return true;
     }
     return false;
 }
 
-bool tokenizer_get(FILE *input, int *c) {
-    if (tokenizer_read(input, c)) {
+bool tokenizer_get(Tokenizer *tokenizer, FILE *input, int *c) {
+    if (tokenizer_read(tokenizer, input, c)) {
         return true;
     }
     if (*c == '\\') {
         int co = *c;
-        if (tokenizer_read(input, c)) {
+        if (tokenizer_read(tokenizer, input, c)) {
             return true;
         }
         if (*c == '\r' || *c == '\n') {
-            if (tokenizer_read(input, c)) {
+            if (tokenizer_read(tokenizer, input, c)) {
                 return true;
             }
         } else {
-            ungetc(*c, input);
-            *c = co;
+            tokenizer_unread(tokenizer, input, c, co);
         }
     }
+    tokenizer_appendRead(tokenizer, (char) *c);
     return false;
 }
 
@@ -50,25 +76,27 @@ Token *tokenizer_checkEOL(int c) {
     return NULL;
 }
 
-Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
+Token *tokenizer_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
     requireNonNull(tokenizer);
     int c;
     do {
-        if (tokenizer_get(input, &c)) {
+        if (tokenizer_get(tokenizer, input, &c)) {
             return token_new(TOK_END, NULL);
         }
     } while (c == ' ' || c == '\t');
     Token *eol = tokenizer_checkEOL(c);
     if (eol != NULL) {
+        tokenizer_discard(tokenizer);
         return eol;
     }
     // TODO: trie for ugly switch
     switch (c) {
         case '#': {
-            while (!tokenizer_read(input, &c)) {
+            while (!tokenizer_read(tokenizer, input, &c)) {
                 if ((eol = tokenizer_checkEOL(c)) != NULL) {
                     return eol;
                 }
+                tokenizer_appendRead(tokenizer, (char) c);
             }
         }
         case '|':
@@ -76,7 +104,7 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
         case ';':
             return token_new(TOK_SEQUENCE, tokenizer_newString(";"));
         case '>': {
-            if (tokenizer_get(input, &c)) {
+            if (tokenizer_get(tokenizer, input, &c)) {
                 return token_new(TOK_OUTPUT, tokenizer_newString(">"));
             }
             switch (c) {
@@ -87,7 +115,7 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
                 case '&':
                     return token_new(TOK_OUTPUT_IO_NUMBER, tokenizer_newString(">&"));
                 default:
-                    ungetc(c, input);
+                    tokenizer_unread(tokenizer, input, &c, 0);
                     return token_new(TOK_OUTPUT, tokenizer_newString(">"));
             }
         }
@@ -112,14 +140,13 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
         if (!inSingleQuote && c == '\\') {
             isUnescaped = false;
             int co = c;
-            if (tokenizer_get(input, &c)) {
+            if (tokenizer_get(tokenizer, input, &c)) {
                 wasDelimited = false;
                 break;
             }
             if (inDoubleQuote && !strchr("\"\\\r\n", c)) {
                 isUnescaped = true;
-                ungetc(c, input);
-                c = co;
+                tokenizer_unread(tokenizer, input, &c, co);
             }
         }
         bool append = true;
@@ -134,20 +161,20 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
         }
         if (append) {
             if (count >= size) {
-                value = realloc(value, (size *= 2) * sizeof(char));
+                value = realloc(value, (size = size * 2 + 1) * sizeof(char));
             }
             if (!isUnescaped || c < '0' || c > '9') {
                 isNumeric = false;
             }
             value[count++] = (char) c;
         }
-        if (tokenizer_get(input, &c)) {
+        if (tokenizer_get(tokenizer, input, &c)) {
             wasDelimited = false;
             break;
         }
     } while (inSingleQuote || inDoubleQuote || !strchr("|;><() \t\r\n", c));
     if (wasDelimited) {
-        ungetc(c, input);
+        tokenizer_unread(tokenizer, input, &c, c);
     }
     value = realloc(value, (count + 1) * sizeof(char));
     value[count] = '\0';
@@ -161,9 +188,28 @@ Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken) {
     return token_new(TOK_WORD, object_new(&TYPE_STRING, value));
 }
 
+void tokenizer_beginRead(Tokenizer *tokenizer) {
+    if (tokenizer->readCharCount > 0) {
+        tokenizer->readCharCount = 0;
+        tokenizer->readCharsSize = 8;
+        tokenizer->readChars = realloc(tokenizer->readChars, tokenizer->readCharsSize * sizeof(char));
+    }
+}
+
+char *tokenizer_endRead(Tokenizer *tokenizer) {
+    char *chars = tokenizer->readChars;
+    chars = realloc(chars, (tokenizer->readCharCount + 1) * sizeof(char));
+    chars[tokenizer->readCharCount] = '\0';
+    tokenizer->readCharCount = 0;
+    tokenizer->readCharsSize = 8;
+    tokenizer->readChars = calloc(tokenizer->readCharsSize, sizeof(char));
+    return chars;
+}
+
 void tokenizer_dispose(Tokenizer *tokenizer) {
     if (tokenizer == NULL) {
         return;
     }
+    free(tokenizer->readChars);
     free(tokenizer);
 }

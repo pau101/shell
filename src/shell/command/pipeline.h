@@ -7,17 +7,21 @@
 #include "command.h"
 #include "../executable/executable.h"
 
+typedef struct shell Shell;
+
+typedef struct executable Executable;
+
 typedef struct pipeline {
     LinkedList *executables;
 } Pipeline;
 
 Pipeline *pipeline_new();
 
-Executable *pipeline_executable(Pipeline *pipeline);
+Executable *pipeline_executable(Pipeline *pipeline, char *source);
 
 void pipeline_add(Pipeline *pipeline, Executable *executable);
 
-int pipeline_exec(Pipeline *pipeline);
+int pipeline_exec(Shell *shell, Pipeline *pipeline);
 
 char *pipeline_toString(void *o);
 

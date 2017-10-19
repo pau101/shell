@@ -11,13 +11,13 @@ Sequence *sequence_new() {
     return sequence;
 }
 
-int sequence_exec_(Object *e) {
-    return sequence_exec(object_get(e, &TYPE_SEQUENCE));
+int sequence_exec_(Shell *shell, Object *e) {
+    return sequence_exec(shell, object_get(e, &TYPE_SEQUENCE));
 }
 
-Executable *sequence_executable(Sequence *sequence) {
+Executable *sequence_executable(Sequence *sequence, char *source) {
     requireNonNull(sequence);
-    return executable_new(object_new(&TYPE_SEQUENCE, sequence), sequence_exec_);
+    return executable_new(object_new(&TYPE_SEQUENCE, sequence), source, sequence_exec_);
 }
 
 void sequence_add(Sequence *sequence, Executable *executable) {
@@ -26,12 +26,12 @@ void sequence_add(Sequence *sequence, Executable *executable) {
     list_addLast(sequence->executables, object_new(&TYPE_EXECUTABLE, executable));
 }
 
-int sequence_exec(Sequence *sequence) {
+int sequence_exec(Shell *shell, Sequence *sequence) {
     requireNonNull(sequence);
     int status = EXIT_SUCCESS;
     Iterator *iter = list_iterator(sequence->executables);
     while (iterator_hasNext(iter)) {
-        status = executable_execute(object_get(iterator_next(iter), &TYPE_EXECUTABLE));
+        status = executable_execute(shell, object_get(iterator_next(iter), &TYPE_EXECUTABLE));
     }
     iterator_dispose(iter);
     return status;

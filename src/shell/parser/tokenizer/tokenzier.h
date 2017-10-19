@@ -5,12 +5,18 @@
 #include "token.h"
 
 typedef struct tokenizer {
-    char _; // place holder
+    int readCharCount;
+    size_t readCharsSize;
+    char *readChars;
 } Tokenizer;
 
 Tokenizer *tokenizer_new();
 
-Token *tokenzier_next(Tokenizer *tokenizer, FILE *input, Token *lastToken);
+Token *tokenizer_next(Tokenizer *tokenizer, FILE *input, Token *lastToken);
+
+void tokenizer_beginRead(Tokenizer *tokenizer);
+
+char *tokenizer_endRead(Tokenizer *tokenizer);
 
 void tokenizer_dispose(Tokenizer *tokenizer);
 

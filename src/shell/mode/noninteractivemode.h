@@ -11,6 +11,8 @@ void nishmode_onPreParse(void **data, Shell *shell, IOStreams *streams);
 
 void nishmode_onPostParse(void **data, Shell *shell, IOStreams *streams, Executable *executable);
 
+void nishmode_onExit(void **data, Shell *shell, IOStreams *streams);
+
 void nishmode_dispose(void *data);
 
 #endif //SHELL_NONINTERACTIVEMODE_H

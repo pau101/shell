@@ -13,13 +13,13 @@ Command *command_new() {
     return command;
 }
 
-int command_exec_(Object *e) {
-    return command_exec(object_get(e, &TYPE_COMMAND));
+int command_exec_(Shell *shell, Object *e) {
+    return command_exec(shell, object_get(e, &TYPE_COMMAND));
 }
 
-Executable *command_executable(Command *command) {
+Executable *command_executable(Command *command, char *source) {
     requireNonNull(command);
-    return executable_new(object_new(&TYPE_COMMAND, command), command_exec_);
+    return executable_new(object_new(&TYPE_COMMAND, command), source, command_exec_);
 }
 
 void command_addWord(Command *command, char *word) {
@@ -34,8 +34,9 @@ void command_addRedirect(Command *command, Redirect *redirect) {
     list_addLast(command->redirects, object_new(&TYPE_REDIRECT, redirect));
 }
 
-int command_exec(Command *command) {
+int command_exec(Shell *shell, Command *command) {
     requireNonNull(command);
+    shell_getBuiltin(shell, object_get(list_peekFirst(command->words), &TYPE_STRING));
     char **words = calloc((size_t) command->words->size + 1, sizeof(char *));
     Iterator *wIter = list_iterator(command->words);
     for (int i = 0; iterator_hasNext(wIter); i++) {

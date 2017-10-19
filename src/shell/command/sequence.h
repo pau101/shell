@@ -5,17 +5,21 @@
 #include "pipeline.h"
 #include "../executable/executable.h"
 
+typedef struct shell Shell;
+
+typedef struct executable Executable;
+
 typedef struct sequence {
     LinkedList *executables;
 } Sequence;
 
 Sequence *sequence_new();
 
-Executable *sequence_executable(Sequence *sequence);
+Executable *sequence_executable(Sequence *sequence, char *source);
 
 void sequence_add(Sequence *sequence, Executable *executable);
 
-int sequence_exec(Sequence *sequence);
+int sequence_exec(Shell *shell, Sequence *sequence);
 
 char *sequence_toString(void *o);
 

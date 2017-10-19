@@ -3,15 +3,16 @@
 #include "../../util/preconditions.h"
 #include "noninteractivemode.h"
 
-#define RUN_COMMANDS_FILE "/home/Paul/.msshrc"
+#define RUN_COMMANDS_FILE ".msshrc"
+#define HISTORY_FILE ".msshrc_history"
 
 typedef struct interactiveData {
-    Hashtable *history;
+    LinkedList *history;
 } InteractiveShellData;
 
 InteractiveShellData *ishdata_new() {
     InteractiveShellData *ishdata = calloc(1, sizeof(InteractiveShellData));
-    ishdata->history = hashtable_new(HT_INITIAL_CAPACITY, HT_LOAD_FACTOR);
+    ishdata->history = list_new();
     return ishdata;
 }
 
@@ -19,7 +20,7 @@ void ishdata_dispose(InteractiveShellData *ishdata) {
     if (ishdata == NULL) {
         return;
     }
-    hashtable_dispose(ishdata->history);
+    list_dispose(ishdata->history);
     free(ishdata);
 }
 
@@ -29,11 +30,17 @@ ShellMode *ishmode_new() {
             ishmode_dispose,
             ishmode_onInit,
             ishmode_onPreParse,
-            ishmode_onPostParse
+            ishmode_onPostParse,
+            ishmode_onExit
     );
 }
 
+InteractiveShellData *ishmode_data(void **data) {
+    return *data;
+}
+
 void ishmode_onInit(void **data, Shell *shell, IOStreams *streams) {
+    requireNonNull(data);
     requireNonNull(shell);
     requireNonNull(streams);
     shell_setVariable(shell, SHELL_PROMPT_1, SHELL_PROMPT_1_DEFAULT);
@@ -51,6 +58,20 @@ void ishmode_onInit(void **data, Shell *shell, IOStreams *streams) {
             pExit("fclose");
         }
     }
+    FILE *hist = fopen(HISTORY_FILE, "r");
+    if (hist != NULL) {
+        LinkedList *history = ishmode_data(data)->history;
+        parser_reset(shell->parser);
+        do {
+            Executable *executable = parser_parse(shell->parser, hist, streams->output);
+            if (executable != NULL) {
+                list_addLast(history, object_new(&TYPE_EXECUTABLE, executable));
+            }
+        } while (parser_isAtLine(shell->parser));
+        if (fclose(hist) == EOF) {
+            pExit("fclose");
+        }
+    }
 }
 
 void ishmode_printVariable(Shell *shell, FILE *output, char *key) {
@@ -61,18 +82,44 @@ void ishmode_printVariable(Shell *shell, FILE *output, char *key) {
 }
 
 void ishmode_onPreParse(void **data, Shell *shell, IOStreams *streams) {
+    requireNonNull(data);
     requireNonNull(shell);
     requireNonNull(streams);
     ishmode_printVariable(shell, streams->output, SHELL_PROMPT_1);
 }
 
 void ishmode_onPostParse(void **data, Shell *shell, IOStreams *streams, Executable *executable) {
+    requireNonNull(data);
     requireNonNull(shell);
     requireNonNull(streams);
     if (executable != NULL) {
-        executable_dispose(executable_clone(executable));
+        int histSize = shell_getIntVariable(shell, HIST_SIZE);
+        LinkedList *history = ishmode_data(data)->history;
+        if (histSize != 0) {
+            list_addLast(history, object_new(&TYPE_EXECUTABLE, executable_clone(executable)));
+        }
+        if (histSize > 0) {
+            while (history->size > histSize) {
+                object_dispose(list_removeFirst(history));
+            }
+        }
     }
     ishmode_printVariable(shell, streams->output, SHELL_PROMPT_0);
+}
+
+void ishmode_onExit(void **data, Shell *shell, IOStreams *streams) {
+    requireNonNull(data);
+    requireNonNull(shell);
+    requireNonNull(streams);
+    FILE *hist = fopen(HISTORY_FILE, "w");
+    if (hist != NULL) {
+        Iterator *itr = list_iterator(ishmode_data(data)->history);
+        while (iterator_hasNext(itr)) {
+            Executable *exec = object_get(iterator_next(itr), &TYPE_EXECUTABLE);
+            fprintf(hist, "%s\n", exec->source);
+        }
+        iterator_dispose(itr);
+    }
 }
 
 void ishmode_dispose(void *data) {

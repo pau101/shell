@@ -40,7 +40,7 @@ bool parser_isAtLine(Parser *parser) {
 }
 
 Token *parser_nextToken(Parser *parser, FILE *input) {
-    Token *token = tokenzier_next(parser->tokenizer, input, parser->token);
+    Token *token = tokenizer_next(parser->tokenizer, input, parser->token);
     token_dispose(parser->token);
     parser->token = token;
     return token;
@@ -148,7 +148,7 @@ ExecutableBuilder *parser_newPipeline(ExecutableBuilder *builder, ThrowingBlock 
         pipeline_add(pipeline, top->executable);
         top->executable = NULL;
     }
-    return execbldr_new(pipeline_executable(pipeline), parser_continuePipeline, parser_newSequence, parser_continuePipeline);
+    return execbldr_new(pipeline_executable(pipeline, newString("")), parser_continuePipeline, parser_newSequence, parser_continuePipeline);
 }
 
 ExecutableBuilder *parser_newSequence(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
@@ -162,21 +162,11 @@ ExecutableBuilder *parser_newSequence(ExecutableBuilder *builder, ThrowingBlock 
         sequence_add(sequence, top->executable);
         top->executable = NULL;
     }
-    return execbldr_new(sequence_executable(sequence), parser_newPipeline, parser_continueSequence, parser_continueSequence);
+    return execbldr_new(sequence_executable(sequence, newString("")), parser_newPipeline, parser_continueSequence, parser_continueSequence);
 }
 
 ExecutableBuilder *parser_bldrError(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
     tb_throw(tb, "syntax error");
-}
-
-ExecutableBuilder *parser_bldrEnd(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
-    if (builder->executable != NULL) {
-        tb_throw(tb, "syntax error");
-    }
-    execbldr_dispose(builder);
-    ExecutableBuilder *bob = execbldr_new(top->executable, parser_bldrError, parser_bldrError, parser_bldrError);
-    top->executable = NULL;
-    return bob;
 }
 
 ExecutableBuilder *parser_parseCommand(Parser *parser, FILE *input, ThrowingBlock *tb) {
@@ -194,7 +184,7 @@ ExecutableBuilder *parser_parseCommand(Parser *parser, FILE *input, ThrowingBloc
         command_dispose(command);
         return NULL;
     }
-    return execbldr_new(command_executable(command), parser_newPipeline, parser_newSequence, parser_bldrError);
+    return execbldr_new(command_executable(command, newString("")), parser_newPipeline, parser_newSequence, parser_bldrError);
 }
 
 void parser_merge(ThrowingBlock *tb, LinkedList *postfix, TokenType type) {
@@ -229,6 +219,7 @@ Executable *parser_parse(Parser *parser, FILE *input, FILE *output) {
     LinkedList *builders = list_new();
     Executable *executable = NULL;
     if (tb_try(tb)) {
+        tokenizer_beginRead(parser->tokenizer);
         do {
             ExecutableBuilder *command = parser_parseCommand(parser, input, tb);
             if (command != NULL) {
@@ -262,6 +253,8 @@ Executable *parser_parse(Parser *parser, FILE *input, FILE *output) {
                 }
             }
         } while (parser_isInLine(parser));
+        char *source = tokenizer_endRead(parser->tokenizer);
+        int sid = tb_trace(tb, object_new(&TYPE_STRING, source));
         while (!list_isEmpty(operators)) {
             TokenType *tp = object_getAndDispose(list_removeLast(operators), &TYPE_REFERENCE);
             if (tp == NULL) {
@@ -275,6 +268,9 @@ Executable *parser_parse(Parser *parser, FILE *input, FILE *output) {
             ExecutableBuilder *builder = object_get(list_single(builders), &TYPE_EXECUTABLE_BUILDER);
             executable = builder->executable;
             builder->executable = NULL;
+            free(executable->source);
+            executable->source = source;
+            tb_untrace(tb, sid);
         } else if (!list_isEmpty(builders)) {
             tb_throw(tb, "syntax error");
         }

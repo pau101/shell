@@ -6,6 +6,10 @@
 #include "../../collections/linkedlist/linkedlist.h"
 #include "../executable/executable.h"
 
+typedef struct shell Shell;
+
+typedef struct executable Executable;
+
 typedef struct command {
     LinkedList *words;
     LinkedList *redirects;
@@ -13,13 +17,13 @@ typedef struct command {
 
 Command *command_new();
 
-Executable *command_executable(Command *command);
+Executable *command_executable(Command *command, char *source);
 
 void command_addWord(Command *command, char *word);
 
 void command_addRedirect(Command *command, Redirect *redirect);
 
-int command_exec(Command *command);
+int command_exec(Shell *shell, Command *command);
 
 char *command_toString(void *o);
 
