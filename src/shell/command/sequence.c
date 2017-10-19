@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <unistd.h>
 #include <wait.h>
 #include "sequence.h"
 #include "../../util/preconditions.h"

@@ -3,8 +3,6 @@
 
 typedef struct shell Shell;
 
-typedef struct executable Executable;
-
 typedef struct shellMode ShellMode;
 
 typedef struct parser Parser;

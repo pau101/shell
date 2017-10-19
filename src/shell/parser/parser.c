@@ -6,8 +6,6 @@
 #include "../../object/type/string.h"
 #include "../../object/type/int.h"
 #include "../../util/throwingblock.h"
-#include "tokenizer/token.h"
-#include "tokenizer/tokenzier.h"
 #include "executablebuilder.h"
 #include "../../object/type/reference.h"
 #include "../../util/preconditions.h"
@@ -46,7 +44,8 @@ Token *parser_nextToken(Parser *parser, Shell *shell, FILE *input) {
     return token;
 }
 
-bool parser_parseIORedirection(Parser *parser, Shell *shell, FILE *input, ThrowingBlock *tb, Command *command, int fdin, int fdout) {
+bool parser_parseIORedirection(Parser *parser, Shell *shell, FILE *input, ThrowingBlock *tb, Command *command, int fdin,
+                               int fdout) {
     int outputType = 0;
     switch (parser->token->type) {
         case TOK_INPUT_IO_NUMBER: {
@@ -148,7 +147,8 @@ ExecutableBuilder *parser_newPipeline(ExecutableBuilder *builder, ThrowingBlock 
         pipeline_add(pipeline, top->executable);
         top->executable = NULL;
     }
-    return execbldr_new(pipeline_executable(pipeline, newString("")), parser_continuePipeline, parser_newSequence, parser_continuePipeline);
+    return execbldr_new(pipeline_executable(pipeline, newString("")), parser_continuePipeline, parser_newSequence,
+                        parser_continuePipeline);
 }
 
 ExecutableBuilder *parser_newSequence(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
@@ -162,7 +162,8 @@ ExecutableBuilder *parser_newSequence(ExecutableBuilder *builder, ThrowingBlock 
         sequence_add(sequence, top->executable);
         top->executable = NULL;
     }
-    return execbldr_new(sequence_executable(sequence, newString("")), parser_newPipeline, parser_continueSequence, parser_continueSequence);
+    return execbldr_new(sequence_executable(sequence, newString("")), parser_newPipeline, parser_continueSequence,
+                        parser_continueSequence);
 }
 
 ExecutableBuilder *parser_bldrError(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *top) {
@@ -198,7 +199,8 @@ ExecutableBuilder *parser_parseCommand(Parser *parser, Shell *shell, FILE *input
         command_dispose(command);
         return NULL;
     }
-    return execbldr_new(command_executable(command, newString("")), parser_newPipeline, parser_newSequence, parser_bldrError);
+    return execbldr_new(command_executable(command, newString("")), parser_newPipeline, parser_newSequence,
+                        parser_bldrError);
 }
 
 void parser_merge(ThrowingBlock *tb, LinkedList *postfix, TokenType type) {

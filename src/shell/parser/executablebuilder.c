@@ -6,7 +6,8 @@
 ExecutableBuilder *
 execbldr_new(Executable *executable,
              ExecutableBuilder *(*beginPipe)(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *other),
-             ExecutableBuilder *(*beginSequence)(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *other),
+             ExecutableBuilder *(*beginSequence)(ExecutableBuilder *builder, ThrowingBlock *tb,
+                                                 ExecutableBuilder *other),
              ExecutableBuilder *(*beginEnd)(ExecutableBuilder *builder, ThrowingBlock *tb, ExecutableBuilder *other)) {
     requireNonNull(beginPipe);
     requireNonNull(beginSequence);

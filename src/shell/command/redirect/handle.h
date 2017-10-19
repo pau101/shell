@@ -25,6 +25,7 @@ void *handle_clone(void *o);
 
 void handle_dispose(void *o);
 
-static const DataType TYPE_HANDLE = {"HANDLE", handle_toString, handle_hashCode, handle_compareTo, handle_clone, handle_dispose};
+static const DataType TYPE_HANDLE = {"HANDLE", handle_toString, handle_hashCode, handle_compareTo, handle_clone,
+                                     handle_dispose};
 
 #endif //SHELL_HANDLE_H

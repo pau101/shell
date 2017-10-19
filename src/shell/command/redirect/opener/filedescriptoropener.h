@@ -25,6 +25,7 @@ void *fdopener_clone(void *o);
 
 void fdopener_dispose(void *o);
 
-static const DataType TYPE_FDOPENER = {"FDOPENER", fdopener_toString, fdopener_hashCode, fdopener_compareTo, fdopener_clone, fdopener_dispose};
+static const DataType TYPE_FDOPENER = {"FDOPENER", fdopener_toString, fdopener_hashCode, fdopener_compareTo,
+                                       fdopener_clone, fdopener_dispose};
 
 #endif //SHELL_FILEDESCRIPTOROPENER_H

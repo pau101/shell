@@ -35,6 +35,7 @@ void shmode_onPostParse(ShellMode *mode, Shell *shell, IOStreams *streams, Execu
     requireNonNull(streams);
     mode->onPostParse(&mode->data, shell, streams, executable);
 }
+
 void shmode_onExit(ShellMode *mode, Shell *shell, IOStreams *streams) {
     requireNonNull(mode);
     requireNonNull(shell);

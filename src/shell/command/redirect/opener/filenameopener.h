@@ -25,6 +25,7 @@ void *filenameopener_clone(void *o);
 
 void filenameopener_dispose(void *o);
 
-static const DataType TYPE_FILENAMEOPENER = {"FILENAMEOPENER", filenameopener_toString, filenameopener_hashCode, filenameopener_compareTo, filenameopener_clone, filenameopener_dispose};
+static const DataType TYPE_FILENAMEOPENER = {"FILENAMEOPENER", filenameopener_toString, filenameopener_hashCode,
+                                             filenameopener_compareTo, filenameopener_clone, filenameopener_dispose};
 
 #endif //SHELL_FILENAMEOPENER_H

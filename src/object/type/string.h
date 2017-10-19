@@ -13,6 +13,7 @@ void string_dispose(void *o);
 
 void *string_clone(void *o);
 
-static const DataType TYPE_STRING = {"STRING", string_toString, string_hashCode, string_compareTo, string_clone, string_dispose};
+static const DataType TYPE_STRING = {"STRING", string_toString, string_hashCode, string_compareTo, string_clone,
+                                     string_dispose};
 
 #endif //SHELL_STRING_H

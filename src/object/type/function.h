@@ -14,6 +14,6 @@ void *function_clone(void *o);
 void function_dispose(void *o);
 
 static const DataType TYPE_FUNCTION = {"FUNCTION", function_toString, function_hashCode, function_compareTo,
-                                        function_clone, function_dispose};
+                                       function_clone, function_dispose};
 
 #endif //SHELL_FUNCTION_H
