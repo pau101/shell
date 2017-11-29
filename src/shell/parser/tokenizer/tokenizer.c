@@ -112,9 +112,7 @@ Token *tokenizer_next(Tokenizer *tokenizer, Shell *shell, FILE *input, Token *la
         case ';':
             return token_new(TOK_SEQUENCE, tokenizer_newString(";"));
         case '>': {
-            if (tokenizer_get(tokenizer, input, &c)) {
-                return token_new(TOK_OUTPUT, tokenizer_newString(">"));
-            }
+            tokenizer_get(tokenizer, input, &c);
             switch (c) {
                 case '|':
                     return token_new(TOK_OUTPUT_CLOBBER, tokenizer_newString(">|"));
@@ -122,9 +120,12 @@ Token *tokenizer_next(Tokenizer *tokenizer, Shell *shell, FILE *input, Token *la
                     return token_new(TOK_OUTPUT_APPEND, tokenizer_newString(">>"));
                 case '&':
                     return token_new(TOK_OUTPUT_IO_NUMBER, tokenizer_newString(">&"));
-                default:
-                    tokenizer_unread(tokenizer, input, &c, 0);
+                default: {
+                    if (c != EOF) {
+                        tokenizer_unread(tokenizer, input, &c, 0);
+                    }
                     return token_new(TOK_OUTPUT, tokenizer_newString(">"));
+                }
             }
         }
         case '<':
